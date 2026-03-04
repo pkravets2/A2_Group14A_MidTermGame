@@ -18,28 +18,28 @@ const TOTAL_BEDS = GRID_COLS * GRID_ROWS;
 
 // Round / timing
 const ROUND_DURATION = 90;          // seconds
-const GRACE_PERIOD = 15;            // seconds before first surge
+const GRACE_PERIOD = 20;            // seconds before first surge
 
 // Plant drain rates (per second, base values — each bed gets slight variation)
-const BASE_WATER_DRAIN = 5.0;
-const BASE_LIGHT_DRAIN = 4.5;
-const DRAIN_VARIATION = 1.5;         // ± random offset per bed
-const HEALTH_LOSS_RATE = 8.0;       // per sec when needs are critically low
-const HEALTH_RECOVERY_RATE = 2.0;   // per sec when needs are healthy
+const BASE_WATER_DRAIN = 3.2; 
+const BASE_LIGHT_DRAIN = 2.8;
+const DRAIN_VARIATION = 0.8;         // ± random offset per bed
+const HEALTH_LOSS_RATE = 5.5;        // per sec when needs are critically low
+const HEALTH_RECOVERY_RATE = 3.0;   // per sec when needs are healthy
 const CRITICAL_THRESHOLD = 25;       // below this, plant is stressed
 const HEALTHY_THRESHOLD = 50;        // above this, plant recovers
 
 // Resource actions
-const WATER_BOOST = 30;
-const LIGHT_BOOST = 30;
+const WATER_BOOST = 35;
+const LIGHT_BOOST = 35; 
 const AIRFLOW_DURATION = 5;         // seconds
 const AIRFLOW_DRAIN_REDUCTION = 0.5;// multiplier on drain while active
 const ACTION_COOLDOWN = 0.3;        // seconds between same-type actions
 const AIRFLOW_COOLDOWN = 4;         // seconds
 
 // Surge system
-const SURGE_MIN_INTERVAL = 12;
-const SURGE_MAX_INTERVAL = 25;
+const SURGE_MIN_INTERVAL = 14;
+const SURGE_MAX_INTERVAL = 30;
 const SURGE_DURATION_MIN = 4;
 const SURGE_DURATION_MAX = 7;
 const SURGE_COOLDOWN_MIN = 8;       // min gap between surges
@@ -54,9 +54,9 @@ const UNCERTAIN_DURATION_MIN = 8;
 const UNCERTAIN_DURATION_MAX = 15;
 
 // Tension meter
-const TENSION_RISE_SURGE = 12;       // per second during surge
-const TENSION_RISE_UNCERTAIN = 6;    // per interaction in uncertain zone
-const TENSION_RISE_ALERTS = 2;       // per second per active alert
+const TENSION_RISE_SURGE = 9;       // per second during surge
+const TENSION_RISE_UNCERTAIN = 5;    // per interaction in uncertain zone
+const TENSION_RISE_ALERTS = 1.5;       // per second per active alert
 const TENSION_DECAY = 3;             // per second during calm
 const TENSION_OVERLOAD_RESET = 70;   // reset to this on overload
 
@@ -83,8 +83,8 @@ const LOSE_WILTED_COUNT = 4;         // lose if this many plants hit 0 health
 const WIN_MIN_ALIVE = TOTAL_BEDS - 3;// need at least this many alive to win
 
 // Difficulty ramp (multiplier increase over full round)
-const DRAIN_RAMP_FACTOR = 0.6;       // drain rates increase by 60% over the round
-const SURGE_FREQ_RAMP = 0.4;         // surge frequency increases 40%
+const DRAIN_RAMP_FACTOR = 0.35;        // drain rates increase by 60% over the round
+const SURGE_FREQ_RAMP = 0.3;         // surge frequency increases 40%
 
 // Visual
 const BED_MARGIN = 12;
@@ -900,78 +900,124 @@ function drawInstructions() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
 
   let cx = CANVAS_W / 2;
-  let startY = 30;
+  let startY = 22;
+  // Reserve space for button at bottom (button is 48px tall + 16px margin)
+  let maxTextY = CANVAS_H - 80;
 
   textAlign(CENTER, TOP);
   textStyle(BOLD);
-  textSize(32);
+  textSize(28);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
   text('How to Play', cx, startY);
 
   textStyle(NORMAL);
-  textSize(15);
+  textSize(13);
   fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
   textAlign(LEFT, TOP);
 
-  let lx = 80;
-  let y = startY + 55;
-  let lineH = 22;
+  // Two-column layout to fit everything
+  let colW = 480;
+  let leftX = 40;
+  let rightX = CANVAS_W / 2 + 30;
+  let lineH = 18;
 
-  let lines = [
-    '[ OBJECTIVE ]',
-    'Keep your greenhouse of 12 plant beds healthy for 90 seconds.',
-    'Plants need Water and Light — both drain over time. If either drops too',
-    'low, the plant\'s health decreases. Lose 4 plants and the round ends.',
-    '',
-    '[ CONTROLS ]',
-    'Arrow Keys / WASD — Move selection cursor between plant beds',
-    'Click on a bed — Select it directly',
-    'Q or click Water button — Route water to selected bed',
-    'E or click Light button — Route light to selected bed',
-    'R or click Airflow button — Temporary stabilizer (has cooldown)',
-    'Space — Begin Grounding Routine (when available)',
-    'P — Pause / Resume     V — Toggle reduced visual effects',
-    '',
-    '[ SURGES — System Disruptions ]',
-    'At unpredictable intervals, a Surge disrupts the greenhouse:',
-    '  • Some indicators flicker — false urgency alerts may appear',
-    '  • Visual clutter increases and controls have slight delay',
-    '  • Surges last a few seconds — stay focused and adapt',
-    '',
-    '[ UNCERTAIN ZONES — Post-Surge ]',
-    'After a surge, some beds become Uncertain Zones briefly:',
-    '  • Interacting with them raises your Tension Meter faster',
-    '  • You can avoid them, but neglecting needs hurts the garden',
-    '',
-    '[ GROUNDING — Coping & Recovery ]',
-    'Press Space to begin a Grounding Routine (breathing rhythm):',
-    '  • Match 3 slow pulses by pressing Space in time with each beat',
-    '  • Success reduces Tension, clears false alerts, stabilizes the garden',
-    '  • Uses a cooldown — use it strategically, not as a free reset',
-    '',
-    '[ A NOTE ON DESIGN ]',
-    'This game uses symbolic mechanics — surges, uncertainty, and grounding',
-    '— to respectfully represent themes of disruption and coping. It is not',
-    'a literal simulation. The goal is to convey empathy through play.',
+  // ---- LEFT COLUMN ----
+  let y = startY + 45;
+
+  let leftLines = [
+    { t: '[ OBJECTIVE ]', style: 'header' },
+    { t: 'Keep 12 plant beds healthy for 90 seconds.', style: 'normal' },
+    { t: 'Plants need Water and Light — both drain over time.', style: 'normal' },
+    { t: 'If needs drop too low, health decreases. Lose 4 plants = game over.', style: 'normal' },
+    { t: '', style: 'normal' },
+    { t: '[ CONTROLS ]', style: 'header' },
+    { t: 'Arrow Keys / WASD — Move selection cursor', style: 'normal' },
+    { t: 'Click a bed — Select it directly', style: 'normal' },
+    { t: 'Q  or  Water btn — Route water to selected bed', style: 'normal' },
+    { t: 'E  or  Light btn — Route light to selected bed', style: 'normal' },
+    { t: 'R  or  Airflow btn — Temporary stabilizer (cooldown)', style: 'normal' },
+    { t: 'Space — Begin Grounding Routine (when ready)', style: 'normal' },
+    { t: 'P — Pause / Resume     V — Toggle reduced effects', style: 'sub' },
+    { t: '', style: 'normal' },
+    { t: '[ SCORING & HARMONY ]', style: 'header' },
+    { t: 'Earn points by keeping beds healthy over time.', style: 'normal' },
+    { t: 'Restore critical plants for bonus points.', style: 'normal' },
+    { t: 'Keep 8+ beds healthy to build a Harmony combo.', style: 'normal' },
+    { t: 'Higher combos multiply your score!', style: 'normal' },
   ];
 
-  for (let line of lines) {
-    if (line.startsWith('[')) {
+  for (let line of leftLines) {
+    if (line.style === 'header') {
       fill(COL.accent[0], COL.accent[1], COL.accent[2]);
       textStyle(BOLD);
-      textSize(15);
-    } else if (line.startsWith('  •')) {
+      textSize(13);
+    } else if (line.style === 'sub') {
       fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
       textStyle(NORMAL);
-      textSize(14);
+      textSize(12);
     } else {
       fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
       textStyle(NORMAL);
-      textSize(14);
+      textSize(13);
     }
-    text(line, lx, y);
+    text(line.t, leftX, y);
     y += lineH;
   }
+
+  // ---- RIGHT COLUMN ----
+  y = startY + 45;
+
+  let rightLines = [
+    { t: '[ SURGES — System Disruptions ]', style: 'header' },
+    { t: 'At unpredictable intervals, a Surge disrupts the', style: 'normal' },
+    { t: 'greenhouse for a few seconds:', style: 'normal' },
+    { t: '  · Some indicators flicker with false urgency alerts', style: 'sub' },
+    { t: '  · Visual clutter increases briefly', style: 'sub' },
+    { t: '  · Controls have a slight delay', style: 'sub' },
+    { t: 'Stay focused and adapt — surges are manageable.', style: 'normal' },
+    { t: '', style: 'normal' },
+    { t: '[ UNCERTAIN ZONES — Post-Surge ]', style: 'header' },
+    { t: 'After a surge, some beds become Uncertain Zones:', style: 'normal' },
+    { t: '  · Interacting with them raises Tension faster', style: 'sub' },
+    { t: '  · Avoiding them may leave plants under-served', style: 'sub' },
+    { t: 'Balance efficiency against rising tension.', style: 'normal' },
+    { t: '', style: 'normal' },
+    { t: '[ GROUNDING — Coping & Recovery ]', style: 'header' },
+    { t: 'Press Space to start a Grounding Routine:', style: 'normal' },
+    { t: '  · Match 3 slow pulse beats by pressing Space in rhythm', style: 'sub' },
+    { t: '  · Success: reduces Tension, clears false alerts,', style: 'sub' },
+    { t: '    and stabilizes the garden briefly', style: 'sub' },
+    { t: '  · Has a cooldown — use it strategically', style: 'sub' },
+    { t: '', style: 'normal' },
+    { t: '[ A NOTE ON DESIGN ]', style: 'header' },
+    { t: 'This game uses symbolic mechanics — surges, uncertainty,', style: 'normal' },
+    { t: 'and grounding — to respectfully represent themes of', style: 'normal' },
+    { t: 'disruption and coping. It is not a literal simulation.', style: 'normal' },
+  ];
+
+  for (let line of rightLines) {
+    if (line.style === 'header') {
+      fill(COL.accent[0], COL.accent[1], COL.accent[2]);
+      textStyle(BOLD);
+      textSize(13);
+    } else if (line.style === 'sub') {
+      fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
+      textStyle(NORMAL);
+      textSize(12);
+    } else {
+      fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
+      textStyle(NORMAL);
+      textSize(13);
+    }
+    text(line.t, rightX, y);
+    y += lineH;
+  }
+
+  // Divider line between columns
+  stroke(COL.accent[0], COL.accent[1], COL.accent[2], 40);
+  strokeWeight(1);
+  line(CANVAS_W / 2 + 10, startY + 50, CANVAS_W / 2 + 10, maxTextY - 10);
+  noStroke();
 }
 
 // --- Gameplay Drawing ---
@@ -1640,7 +1686,8 @@ function initMenuButtons() {
   }, 'title_instructions'));
 
   // Instructions back button
-  menuButtons.push(new Button(cx - btnW / 2, CANVAS_H - 60, btnW, btnH, 'Back to Title', () => {
+// Instructions back button — centered at bottom with clear margin
+  menuButtons.push(new Button(cx - btnW / 2, CANVAS_H - 55, btnW, btnH, 'Back to Title', () => {
     gameState = STATE.TITLE;
   }, 'instr_back'));
 
@@ -1904,3 +1951,4 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+
