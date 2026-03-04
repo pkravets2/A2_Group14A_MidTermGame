@@ -12,7 +12,7 @@ const CANVAS_W = 1100;
 const CANVAS_H = 750;
 
 // Grid layout
-const GRID_COLS = 4;
+const GRID_COLS = 3;
 const GRID_ROWS = 3;
 const TOTAL_BEDS = GRID_COLS * GRID_ROWS;
 
@@ -74,13 +74,13 @@ const SCORE_PER_HEALTHY_SEC = 1;     // per healthy bed per second
 const SCORE_RESTORE_BONUS = 15;      // bonus for restoring critical plant
 const SCORE_GROUNDING_BONUS = 25;
 const SCORE_SURGE_SURVIVE = 20;
-const COMBO_THRESHOLD = 8;           // beds healthy to build combo
+const COMBO_THRESHOLD = 6;           // beds healthy to build combo
 const COMBO_MULTIPLIER_STEP = 0.1;
 const COMBO_MAX_MULTIPLIER = 3.0;
 
 // Win/Lose
-const LOSE_WILTED_COUNT = 4;         // lose if this many plants hit 0 health
-const WIN_MIN_ALIVE = TOTAL_BEDS - 3;// need at least this many alive to win
+const LOSE_WILTED_COUNT = 3;         // lose if this many plants hit 0 health
+const WIN_MIN_ALIVE = 7;// need at least this many alive to win
 
 // Difficulty ramp (multiplier increase over full round)
 const DRAIN_RAMP_FACTOR = 0.35;        // drain rates increase by 60% over the round
@@ -926,7 +926,7 @@ function drawInstructions() {
 
   let leftLines = [
     { t: '[ OBJECTIVE ]', style: 'header' },
-    { t: 'Keep 12 plant beds healthy for 90 seconds.', style: 'normal' },
+    { t: 'Keep 9 plant beds healthy for 90 seconds.', style: 'normal' },
     { t: 'Plants need Water and Light — both drain over time.', style: 'normal' },
     { t: 'If needs drop too low, health decreases. Lose 4 plants = game over.', style: 'normal' },
     { t: '', style: 'normal' },
@@ -942,7 +942,7 @@ function drawInstructions() {
     { t: '[ SCORING & HARMONY ]', style: 'header' },
     { t: 'Earn points by keeping beds healthy over time.', style: 'normal' },
     { t: 'Restore critical plants for bonus points.', style: 'normal' },
-    { t: 'Keep 8+ beds healthy to build a Harmony combo.', style: 'normal' },
+    { t: 'Keep 6+ beds healthy to build a Harmony combo.', style: 'normal' },
     { t: 'Higher combos multiply your score!', style: 'normal' },
   ];
 
@@ -1951,4 +1951,5 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+
 
