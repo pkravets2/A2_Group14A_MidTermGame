@@ -18,28 +18,28 @@ const TOTAL_BEDS = GRID_COLS * GRID_ROWS;
 
 // Round / timing
 const ROUND_DURATION = 90;          // seconds
-const GRACE_PERIOD = 20;            // seconds before first surge
+const GRACE_PERIOD = 15;            // seconds before first surge
 
 // Plant drain rates (per second, base values — each bed gets slight variation)
-const BASE_WATER_DRAIN = 3.2; 
-const BASE_LIGHT_DRAIN = 2.8;
-const DRAIN_VARIATION = 0.8;         // ± random offset per bed
-const HEALTH_LOSS_RATE = 5.5;        // per sec when needs are critically low
-const HEALTH_RECOVERY_RATE = 3.0;   // per sec when needs are healthy
+const BASE_WATER_DRAIN = 5; 
+const BASE_LIGHT_DRAIN = 4;
+const DRAIN_VARIATION = 1.5;         // ± random offset per bed
+const HEALTH_LOSS_RATE = 7;        // per sec when needs are critically low
+const HEALTH_RECOVERY_RATE = 2.5;   // per sec when needs are healthy
 const CRITICAL_THRESHOLD = 25;       // below this, plant is stressed
 const HEALTHY_THRESHOLD = 50;        // above this, plant recovers
 
 // Resource actions
-const WATER_BOOST = 35;
-const LIGHT_BOOST = 35; 
+const WATER_BOOST = 30;
+const LIGHT_BOOST = 30; 
 const AIRFLOW_DURATION = 5;         // seconds
 const AIRFLOW_DRAIN_REDUCTION = 0.5;// multiplier on drain while active
 const ACTION_COOLDOWN = 0.3;        // seconds between same-type actions
 const AIRFLOW_COOLDOWN = 4;         // seconds
 
 // Surge system
-const SURGE_MIN_INTERVAL = 14;
-const SURGE_MAX_INTERVAL = 30;
+const SURGE_MIN_INTERVAL = 12;
+const SURGE_MAX_INTERVAL = 25;
 const SURGE_DURATION_MIN = 4;
 const SURGE_DURATION_MAX = 7;
 const SURGE_COOLDOWN_MIN = 8;       // min gap between surges
@@ -54,9 +54,9 @@ const UNCERTAIN_DURATION_MIN = 8;
 const UNCERTAIN_DURATION_MAX = 15;
 
 // Tension meter
-const TENSION_RISE_SURGE = 9;       // per second during surge
-const TENSION_RISE_UNCERTAIN = 5;    // per interaction in uncertain zone
-const TENSION_RISE_ALERTS = 1.5;       // per second per active alert
+const TENSION_RISE_SURGE = 12;       // per second during surge
+const TENSION_RISE_UNCERTAIN = 4;    // per interaction in uncertain zone
+const TENSION_RISE_ALERTS = 1.2;       // per second per active alert
 const TENSION_DECAY = 3;             // per second during calm
 const TENSION_OVERLOAD_RESET = 70;   // reset to this on overload
 
@@ -83,8 +83,8 @@ const LOSE_WILTED_COUNT = 3;         // lose if this many plants hit 0 health
 const WIN_MIN_ALIVE = 7;// need at least this many alive to win
 
 // Difficulty ramp (multiplier increase over full round)
-const DRAIN_RAMP_FACTOR = 0.35;        // drain rates increase by 60% over the round
-const SURGE_FREQ_RAMP = 0.3;         // surge frequency increases 40%
+const DRAIN_RAMP_FACTOR = 0.5;        // drain rates increase by 60% over the round
+const SURGE_FREQ_RAMP = 0.4;         // surge frequency increases 40%
 
 // Visual
 const BED_MARGIN = 12;
@@ -1951,5 +1951,6 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+
 
 
