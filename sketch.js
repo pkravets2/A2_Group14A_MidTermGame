@@ -886,28 +886,26 @@ function drawInstructionsOverlay() {
   let rightX = cx + 20;
   let colStartY = oy + 60;
 
-  // Left column
+ // Left column
   let y = colStartY;
   let leftLines = [
     { t: '[ OBJECTIVE ]', s: 'h' },
-    { t: 'Keep 9 plant beds healthy for 90 seconds.', s: 'n' },
-    { t: 'Plants need Water and Light — both drain over time.', s: 'n' },
-    { t: 'If needs drop too low, health decreases. Lose 3 = game over.', s: 'n' },
+    { t: 'Keep your 9 plants alive for 90 seconds.', s: 'n' },
+    { t: 'Plants drain Water and Light over time.', s: 'n' },
+    { t: 'If 3 plants die, you lose.', s: 'n' },
     { t: '', s: 'n' },
     { t: '[ CONTROLS ]', s: 'h' },
-    { t: 'Arrow Keys / WASD — Move selection cursor', s: 'n' },
-    { t: 'Click a bed — Select it directly', s: 'n' },
-    { t: 'Q  or  Water btn — Route water to selected bed', s: 'n' },
-    { t: 'E  or  Light btn — Route light to selected bed', s: 'n' },
-    { t: 'R  or  Airflow btn — Temporary stabilizer', s: 'n' },
-    { t: 'Space — Begin Grounding Routine', s: 'n' },
-    { t: 'P / Esc — Pause     V — Toggle effects', s: 'sub' },
+    { t: 'WASD / Arrows — Select a plant bed', s: 'n' },
+    { t: 'Click — Select a bed directly', s: 'n' },
+    { t: 'Q — Water        E — Light', s: 'n' },
+    { t: 'R — Airflow (stabilizer, has cooldown)', s: 'n' },
+    { t: 'Space — Grounding (coping routine)', s: 'n' },
+    { t: 'P / Esc — Pause', s: 'sub' },
     { t: '', s: 'n' },
-    { t: '[ SCORING & HARMONY ]', s: 'h' },
-    { t: 'Earn points by keeping beds healthy over time.', s: 'n' },
-    { t: 'Restore critical plants for bonus points.', s: 'n' },
-    { t: 'Keep 6+ beds healthy to build a Harmony combo.', s: 'n' },
-    { t: 'Higher combos multiply your score!', s: 'n' },
+    { t: '[ SCORING ]', s: 'h' },
+    { t: 'Keep 6+ beds healthy → Harmony combo', s: 'n' },
+    { t: 'Restore dying plants → bonus points', s: 'n' },
+    { t: 'Higher combo = higher score multiplier', s: 'n' },
   ];
   for (let line of leftLines) {
     applyLineStyle(line.s);
@@ -915,32 +913,30 @@ function drawInstructionsOverlay() {
     y += lineH;
   }
 
-  // Right column
+ // Right column
   y = colStartY;
   let rightLines = [
-    { t: '[ SURGES — System Disruptions ]', s: 'h' },
-    { t: 'At unpredictable intervals, a Surge disrupts the', s: 'n' },
-    { t: 'greenhouse for a few seconds:', s: 'n' },
-    { t: '  · Some indicators flicker with false alerts', s: 'sub' },
-    { t: '  · Visual clutter increases briefly', s: 'sub' },
-    { t: '  · Controls have a slight delay', s: 'sub' },
-    { t: 'Stay focused — surges are manageable.', s: 'n' },
+    { t: '[ SURGES ]', s: 'h' },
+    { t: 'Random disruptions that last a few seconds:', s: 'n' },
+    { t: '  · False alerts appear on healthy plants', s: 'sub' },
+    { t: '  · Controls get slightly delayed', s: 'sub' },
+    { t: '  · Visual clutter increases', s: 'sub' },
+    { t: 'Stay calm — they pass.', s: 'n' },
     { t: '', s: 'n' },
-    { t: '[ UNCERTAIN ZONES — Post-Surge ]', s: 'h' },
-    { t: 'After a surge, some beds become Uncertain:', s: 'n' },
-    { t: '  · Interacting raises Tension faster', s: 'sub' },
-    { t: '  · Avoiding them may leave plants unserved', s: 'sub' },
-    { t: 'Balance efficiency against rising tension.', s: 'n' },
+    { t: '[ UNCERTAIN ZONES ]', s: 'h' },
+    { t: 'After a surge, some beds get marked.', s: 'n' },
+    { t: 'Tending them raises your Tension faster.', s: 'n' },
+    { t: 'Ignoring them lets plants suffer.', s: 'n' },
     { t: '', s: 'n' },
-    { t: '[ GROUNDING — Coping & Recovery ]', s: 'h' },
-    { t: 'Press Space to start a Grounding Routine:', s: 'n' },
-    { t: '  · Match 3 slow pulse beats with Space', s: 'sub' },
-    { t: '  · Reduces Tension, Slows Plant Drain', s: 'sub' },
-    { t: '  · Has a cooldown — use strategically', s: 'sub' },
+    { t: '[ GROUNDING ]', s: 'h' },
+    { t: 'Press Space → match 3 rhythm beats.', s: 'n' },
+    { t: 'Success: lowers Tension, slows drain,', s: 'n' },
+    { t: 'and clears false alerts.', s: 'n' },
+    { t: 'Has a cooldown — use wisely.', s: 'sub' },
     { t: '', s: 'n' },
-    { t: '[ A NOTE ON DESIGN ]', s: 'h' },
-    { t: 'This game uses symbolic mechanics to respectfully', s: 'n' },
-    { t: 'represent themes of disruption and coping.', s: 'n' },
+    { t: '[ NOTE ]', s: 'h' },
+    { t: 'This game uses symbolic mechanics to', s: 'n' },
+    { t: 'respectfully represent disruption and coping.', s: 'n' },
     { t: 'It is not a literal simulation.', s: 'n' },
   ];
   for (let line of rightLines) {
