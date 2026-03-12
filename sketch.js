@@ -47,7 +47,7 @@ const SURGE_DURATION_MAX = 7;
 const SURGE_COOLDOWN_MIN = 8;
 const FALSE_ALERT_COUNT = 3;
 const SURGE_INPUT_DELAY = 0.1;
-const SURGE_JITTER_AMOUNT = 3;
+const SURGE_JITTER_AMOUNT = 5;
 
 // Uncertain zones
 const UNCERTAIN_ZONE_COUNT_MIN = 2;
@@ -92,7 +92,7 @@ const WIN_MIN_ALIVE = 7;
 
 // Difficulty ramp
 const DRAIN_RAMP_FACTOR = 0.5;
-const SURGE_FREQ_RAMP = 0.4;
+const SURGE_FREQ_RAMP = 0.6;
 
 // Visual
 const BED_MARGIN = 12;
