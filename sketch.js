@@ -37,7 +37,7 @@ const AIRFLOW_DRAIN_REDUCTION = 0.3;
 const AIRFLOW_HEALTH_RECOVERY = 1.5;
 const AIRFLOW_COOLDOWN = 3;
 const ACTION_COOLDOWN = 0.3;
-const ACTION_LOCK_DURATION = 0.155;
+const ACTION_LOCK_DURATION = 0.14;
 
 // Surge system
 const SURGE_MIN_INTERVAL = 12;
@@ -1627,4 +1627,5 @@ if (typeof window !== 'undefined') {
   window.addEventListener('keydown', function(e) {
     if ([32,37,38,39,40].includes(e.keyCode)) e.preventDefault();
   });
+
 }
