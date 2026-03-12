@@ -948,7 +948,7 @@ function drawInstructionsOverlay() {
   // Divider line between columns
   stroke(COL.accent[0], COL.accent[1], COL.accent[2], 40);
   strokeWeight(1);
-  line(cx + 5, colStartY, cx + 5, colStartY + 19 * lineH);
+  line(cx + 5, colStartY, cx + 5, colStartY + 17 * lineH);
   noStroke();
 
   // Close button
