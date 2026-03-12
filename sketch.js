@@ -106,7 +106,7 @@ const TITLE_FALLBACK_IMG = 'assets/title_bg.png';     // optional fallback image
 
 // Hitbox positions (estimated from 2000x1358 image → scaled to 1100x750)
 // Tweak these if buttons don't line up with your video
-const TITLE_START_BTN = { x: 328, y: 595, w: 250, h: 95 };
+const TITLE_START_BTN = { x: 300, y: 595, w: 250, h: 95 };
 const TITLE_INSTR_BTN = { x: 580, y: 595, w: 280, h: 95 };
 
 // Instructions overlay layout
