@@ -935,7 +935,7 @@ function drawInstructionsOverlay() {
     { t: '[ GROUNDING — Coping & Recovery ]', s: 'h' },
     { t: 'Press Space to start a Grounding Routine:', s: 'n' },
     { t: '  · Match 3 slow pulse beats with Space', s: 'sub' },
-    { t: '  · Reduces Tension, clears false alerts', s: 'sub' },
+    { t: '  · Reduces Tension, Slows Plant Drain', s: 'sub' },
     { t: '  · Has a cooldown — use strategically', s: 'sub' },
     { t: '', s: 'n' },
     { t: '[ A NOTE ON DESIGN ]', s: 'h' },
