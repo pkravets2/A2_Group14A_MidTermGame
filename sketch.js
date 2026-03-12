@@ -37,7 +37,7 @@ const AIRFLOW_DRAIN_REDUCTION = 0.3;
 const AIRFLOW_HEALTH_RECOVERY = 1.5;
 const AIRFLOW_COOLDOWN = 3;
 const ACTION_COOLDOWN = 0.3;
-const ACTION_LOCK_DURATION = 0.17;
+const ACTION_LOCK_DURATION = 0.155;
 
 // Surge system
 const SURGE_MIN_INTERVAL = 12;
@@ -916,7 +916,7 @@ function drawInstructionsOverlay() {
  // Right column
   y = colStartY;
   let rightLines = [
-    { t: '[ SURGES ]', s: 'h' },
+    { t: '[ SURGES ]', s: 'h' }, 
     { t: 'Random disruptions that last a few seconds:', s: 'n' },
     { t: '  · False alerts appear on healthy plants', s: 'sub' },
     { t: '  · Controls get slightly delayed', s: 'sub' },
