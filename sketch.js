@@ -1096,7 +1096,7 @@ function drawGameplay() {
 }
 
 // ============================================================
-// CHANGE #1 — Rewritten drawBed() with plant images
+// CHANGE #1 — Rewritten drawBed(): image fills box, bars at bottom
 // ============================================================
 function drawBed(bed) {
   let bx = bed.x;
@@ -1104,7 +1104,7 @@ function drawBed(bed) {
   let bw = bed.w;
   let bh = bed.h;
 
-  // --- Background rectangle (always drawn as base) ---
+  // --- Background rectangle (base, visible if no image) ---
   if (bed.isWilted) {
     fill(COL.bedDead[0], COL.bedDead[1], COL.bedDead[2]);
   } else if (bed.isUncertainZone) {
@@ -1137,28 +1137,23 @@ function drawBed(bed) {
   rect(bx, by, bw, bh, 4);
   noStroke();
 
-  // --- CHANGE #1: Draw plant image OR fallback icon ---
+  // --- Draw plant image filling the entire bed box ---
   if (imagesLoaded) {
-    // Pick the correct image based on health thresholds
     let img = getPlantImage(bed.health);
     if (img) {
-      // Draw image centered in the upper portion of the bed
-      let imgSize = min(bw - 20, bh * 0.4);  // fit within bed
-      let imgX = bx + (bw - imgSize) / 2;
-      let imgY = by + 6;
-
       push();
       imageMode(CORNER);
-      // If dead, add dark tint overlay for extra clarity
+      // Clip to the bed rectangle (draw image filling entire box)
+      // Dead plants get a dark desaturated tint
       if (bed.isWilted) {
-        tint(100, 60, 60, 180); // desaturated reddish tint
+        tint(80, 50, 50, 200);
       }
-      image(img, imgX, imgY, imgSize, imgSize);
+      image(img, bx + 1, by + 1, bw - 2, bh - 2);
       noTint();
       pop();
     }
   } else {
-    // Fallback: original text icon rendering (no images available)
+    // Fallback: old text icon rendering if images didn't load
     if (bed.isWilted) {
       fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 120);
       textAlign(CENTER, CENTER);
@@ -1179,27 +1174,44 @@ function drawBed(bed) {
     textAlign(CENTER, CENTER);
     textSize(22);
     let plantIcon = bed.health > 60 ? '❋' : bed.health > 30 ? '❊' : '✿';
-    text(plantIcon, bx + bw / 2, by + 24);
+    text(plantIcon, bx + bw / 2, by + bh * 0.35);
   }
 
-  // If wilted and images loaded, still show "Wilted" label and skip meters
+  // If wilted, show label and skip bars
   if (bed.isWilted) {
-    fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 180);
+    // Dark overlay so "Wilted" text is readable over the image
+    fill(0, 0, 0, 120);
+    noStroke();
+    rect(bx + 1, by + bh - 30, bw - 2, 29, 0, 0, 4, 4);
+    fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 220);
     textAlign(CENTER, CENTER);
-    textSize(12);
+    textSize(13);
     textStyle(BOLD);
     text('Wilted', bx + bw / 2, by + bh - 16);
     textStyle(NORMAL);
     return;
   }
 
-  // --- UI overlays (meters, labels, alerts) — drawn ON TOP of image ---
+  // ===========================================================
+  // BARS AT THE BOTTOM — positioned over the soil area
+  // so they don't cover the plant in the upper portion
+  // ===========================================================
+  let barH = 6;
+  let barW = bw - 16;
+  let barX = bx + 8;
+  let barGap = 4;       // gap between label and next bar
+  let labelH = 10;      // height for tiny label text
 
-  // Health bar
-  let barStartY = by + bh * 0.45;  // position bars below the plant image area
-  let barH = 7;
-  let barW = bw - 20;
-  let barX = bx + 10;
+  // Calculate bar area from bottom up
+  // Layout from bottom: [light label] [light bar] [water label] [water bar] [hp label] [hp bar] [padding]
+  let bottomPad = 6;
+  let totalBarArea = 3 * (barH + labelH + barGap);
+  let barAreaTop = by + bh - bottomPad - totalBarArea;
+
+  // Semi-transparent dark backdrop behind bars so they're readable over soil
+  fill(0, 0, 0, 140);
+  noStroke();
+  rect(bx + 1, barAreaTop - 4, bw - 2, bh - (barAreaTop - by) + 3, 0, 0, 4, 4);
 
   let healthColor = bed.health > 50 ?
     COL.health :
@@ -1207,48 +1219,59 @@ function drawBed(bed) {
      lerp(COL.healthLow[1], COL.health[1], bed.health / 50),
      lerp(COL.healthLow[2], COL.health[2], bed.health / 50)];
 
-  fill(30, 35, 30);
-  rect(barX, barStartY, barW, barH, 2);
-  let hw = barW * bed.health / 100;
-  fill(healthColor[0], healthColor[1], healthColor[2]);
-  rect(barX, barStartY, hw, barH, 2);
+  let curY = barAreaTop;
 
-  textSize(9);
+  // --- Health bar ---
+  textSize(8);
   textStyle(BOLD);
-  fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
-  textAlign(CENTER, TOP);
-  text('HP ' + floor(bed.health), bx + bw / 2, barStartY + barH + 2);
+  fill(healthColor[0], healthColor[1], healthColor[2]);
+  textAlign(LEFT, TOP);
+  text('HP ' + floor(bed.health), barX, curY);
   textStyle(NORMAL);
+  curY += labelH;
 
-  // Water bar
-  let wBarY = barStartY + barH + 16;
-  fill(30, 35, 50);
-  rect(barX, wBarY, barW, barH, 2);
-  fill(COL.water[0], COL.water[1], COL.water[2]);
-  rect(barX, wBarY, barW * bed.water / 100, barH, 2);
+  fill(20, 25, 20);
+  rect(barX, curY, barW, barH, 2);
+  fill(healthColor[0], healthColor[1], healthColor[2]);
+  rect(barX, curY, barW * bed.health / 100, barH, 2);
+  curY += barH + barGap;
 
-  textSize(9);
+  // --- Water bar ---
+  textSize(8);
   fill(COL.water[0], COL.water[1], COL.water[2]);
   textAlign(LEFT, TOP);
-  text('💧' + floor(bed.water), barX, wBarY + barH + 2);
+  text('💧 ' + floor(bed.water), barX, curY);
+  curY += labelH;
 
-  // Light bar
-  let lBarY = wBarY + barH + 16;
-  fill(30, 35, 30);
-  rect(barX, lBarY, barW, barH, 2);
-  fill(COL.light[0], COL.light[1], COL.light[2]);
-  rect(barX, lBarY, barW * bed.light / 100, barH, 2);
+  fill(20, 25, 35);
+  rect(barX, curY, barW, barH, 2);
+  fill(COL.water[0], COL.water[1], COL.water[2]);
+  rect(barX, curY, barW * bed.water / 100, barH, 2);
+  curY += barH + barGap;
 
+  // --- Light bar ---
+  textSize(8);
   fill(COL.light[0], COL.light[1], COL.light[2]);
   textAlign(LEFT, TOP);
-  text('☀' + floor(bed.light), barX, lBarY + barH + 2);
+  text('☀ ' + floor(bed.light), barX, curY);
 
-  // Airflow indicator
+  // Airflow indicator next to light label
   if (bed.airflowActive) {
-    fill(COL.airflow[0], COL.airflow[1], COL.airflow[2], 160);
+    fill(COL.airflow[0], COL.airflow[1], COL.airflow[2], 200);
     textAlign(RIGHT, TOP);
-    text('🌬' + floor(bed.airflowTimer) + 's', barX + barW, lBarY + barH + 2);
+    text('🌬' + floor(bed.airflowTimer) + 's', barX + barW, curY);
+    textAlign(LEFT, TOP);
   }
+  curY += labelH;
+
+  fill(20, 25, 20);
+  rect(barX, curY, barW, barH, 2);
+  fill(COL.light[0], COL.light[1], COL.light[2]);
+  rect(barX, curY, barW * bed.light / 100, barH, 2);
+
+  // ===========================================================
+  // STATUS OVERLAYS — drawn on top of everything
+  // ===========================================================
 
   // Surge flicker overlay
   if (surgeActive && !reducedEffects && random() < 0.15) {
@@ -1257,7 +1280,7 @@ function drawBed(bed) {
     rect(bx, by, bw, bh, 4);
   }
 
-  // False alert / urgency indicators
+  // False alert / urgency indicators (top-right corner)
   if (bed.hasFalseAlert && !bed.isWilted) {
     fill(COL.falseAlert[0], COL.falseAlert[1], COL.falseAlert[2], 160 + sin(millis() / 150) * 60);
     textAlign(RIGHT, TOP);
@@ -1283,17 +1306,18 @@ function drawBed(bed) {
     rect(bx + 2, by + 2, bw - 4, bh - 4, 3);
     noStroke();
 
-    fill(180, 160, 220, 140);
-    textAlign(LEFT, BOTTOM);
+    // Label in top-left area (over the plant, not the bars)
+    fill(180, 160, 220, 180);
+    textAlign(LEFT, TOP);
     textSize(8);
-    text('uncertain', bx + 5, by + bh - 3);
+    text('uncertain', bx + 5, by + 5);
   }
 
-  // Bed index label
-  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 60);
+  // Bed index (small debug label, top-left)
+  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 80);
   textAlign(LEFT, TOP);
   textSize(8);
-  text('#' + (bed.index + 1), bx + 4, by + 4);
+  text('#' + (bed.index + 1), bx + 4, by + (bed.isUncertainZone ? 15 : 4));
 }
 
 // --- Side Panel ---
