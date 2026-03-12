@@ -106,7 +106,7 @@ const TITLE_FALLBACK_IMG = 'assets/title_bg.png';     // optional fallback image
 
 // Hitbox positions (estimated from 2000x1358 image → scaled to 1100x750)
 // Tweak these if buttons don't line up with your video
-const TITLE_START_BTN = { x: 145, y: 595, w: 250, h: 95 };
+const TITLE_START_BTN = { x: 328, y: 595, w: 250, h: 95 };
 const TITLE_INSTR_BTN = { x: 580, y: 595, w: 280, h: 95 };
 
 // Instructions overlay layout
@@ -114,7 +114,7 @@ const INSTR_OVERLAY_X = 60;        // left margin
 const INSTR_OVERLAY_Y = 40;        // top margin
 const INSTR_OVERLAY_W = 980;       // width (CANVAS_W - 2*margin)
 const INSTR_OVERLAY_H = 660;       // height
-const INSTR_OVERLAY_ALPHA = 210;   // background darkness (0-255)
+const INSTR_OVERLAY_ALPHA = 240;   // background darkness (0-255)
 const INSTR_CLOSE_BTN = { x: 820, y: 620, w: 160, h: 44 }; // Close button inside overlay
 
 // Pause menu layout
