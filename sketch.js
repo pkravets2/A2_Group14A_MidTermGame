@@ -1395,9 +1395,7 @@ function drawWin() {
   fill(COL.accent); text('Greenhouse Stabilized', cx, 100);
   textStyle(NORMAL); textSize(18); fill(COL.textSecondary);
   text('You kept the garden in balance.', cx, 150);
-  textSize(60); textStyle(BOLD); fill(COL.combo);
-  text(computeGrade(), cx, 230); textStyle(NORMAL);
-  drawEndStats(cx, 290);
+  drawEndStats(cx, 210);
 }
 
 function drawLose() {
@@ -1629,3 +1627,4 @@ if (typeof window !== 'undefined') {
   });
 
 }
+
