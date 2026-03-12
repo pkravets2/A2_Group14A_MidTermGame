@@ -17,74 +17,88 @@ const GRID_ROWS = 3;
 const TOTAL_BEDS = GRID_COLS * GRID_ROWS;
 
 // Round / timing
-const ROUND_DURATION = 90;          // seconds
-const GRACE_PERIOD = 15;            // seconds before first surge
+const ROUND_DURATION = 90;
+const GRACE_PERIOD = 15;
 
-// Plant drain rates (per second, base values — each bed gets slight variation)
-const BASE_WATER_DRAIN = 5; 
+// Plant drain rates
+const BASE_WATER_DRAIN = 5;
 const BASE_LIGHT_DRAIN = 4;
-const DRAIN_VARIATION = 1.5;         // ± random offset per bed
-const HEALTH_LOSS_RATE = 7;        // per sec when needs are critically low
-const HEALTH_RECOVERY_RATE = 2.5;   // per sec when needs are healthy
-const CRITICAL_THRESHOLD = 25;       // below this, plant is stressed
-const HEALTHY_THRESHOLD = 50;        // above this, plant recovers
+const DRAIN_VARIATION = 1.5;
+const HEALTH_LOSS_RATE = 7;
+const HEALTH_RECOVERY_RATE = 2.5;
+const CRITICAL_THRESHOLD = 25;
+const HEALTHY_THRESHOLD = 50;
 
 // Resource actions
 const WATER_BOOST = 30;
-const LIGHT_BOOST = 30; 
-const AIRFLOW_DURATION = 5;         // seconds
-const AIRFLOW_DRAIN_REDUCTION = 0.5;// multiplier on drain while active
-const ACTION_COOLDOWN = 0.3;        // seconds between same-type actions
-const AIRFLOW_COOLDOWN = 4;         // seconds
+const LIGHT_BOOST = 30;
+
+// CHANGE #2 — Buffed airflow constants
+const AIRFLOW_DURATION = 8;              // was 5 — lasts 60% longer
+const AIRFLOW_DRAIN_REDUCTION = 0.3;     // was 0.5 — slows drain to 30% (stronger)
+const AIRFLOW_HEALTH_RECOVERY = 1.5;     // NEW — heals 1.5 HP/sec while airflow active
+const AIRFLOW_COOLDOWN = 3;              // was 4 — slightly shorter cooldown
+
+const ACTION_COOLDOWN = 0.3;
+
+// CHANGE #4 — Global action lock (anti-spam)
+const ACTION_LOCK_DURATION = 0.2;        // NEW — 0.2s lockout after water/light
 
 // Surge system
 const SURGE_MIN_INTERVAL = 12;
 const SURGE_MAX_INTERVAL = 25;
 const SURGE_DURATION_MIN = 4;
 const SURGE_DURATION_MAX = 7;
-const SURGE_COOLDOWN_MIN = 8;       // min gap between surges
-const FALSE_ALERT_COUNT = 3;        // how many false alerts per surge
-const SURGE_INPUT_DELAY = 0.1;      // seconds of input delay during surge
-const SURGE_JITTER_AMOUNT = 3;      // pixels of cursor jitter
+const SURGE_COOLDOWN_MIN = 8;
+const FALSE_ALERT_COUNT = 3;
+const SURGE_INPUT_DELAY = 0.1;
+const SURGE_JITTER_AMOUNT = 3;
 
-// Uncertain zones (post-surge)
+// Uncertain zones
 const UNCERTAIN_ZONE_COUNT_MIN = 2;
 const UNCERTAIN_ZONE_COUNT_MAX = 4;
 const UNCERTAIN_DURATION_MIN = 8;
 const UNCERTAIN_DURATION_MAX = 15;
 
 // Tension meter
-const TENSION_RISE_SURGE = 12;       // per second during surge
-const TENSION_RISE_UNCERTAIN = 4;    // per interaction in uncertain zone
-const TENSION_RISE_ALERTS = 1.2;       // per second per active alert
-const TENSION_DECAY = 3;             // per second during calm
-const TENSION_OVERLOAD_RESET = 70;   // reset to this on overload
+const TENSION_RISE_SURGE = 12;
+const TENSION_RISE_UNCERTAIN = 4;
+const TENSION_RISE_ALERTS = 1.2;
+const TENSION_DECAY = 3;
+const TENSION_OVERLOAD_RESET = 70;
 
-// Grounding
-const GROUNDING_COOLDOWN = 10;       // seconds
+// CHANGE #3 — More forgiving grounding constants
+const GROUNDING_COOLDOWN = 10;
 const GROUNDING_BEATS = 3;
-const GROUNDING_BEAT_WINDOW = 0.3;   // seconds tolerance
-const GROUNDING_BEAT_INTERVAL = 1.2; // seconds between beats
-const GROUNDING_TENSION_REWARD = 30; // tension reduction on success
-const GROUNDING_STABILITY_TIME = 5;  // seconds of stability after grounding
+const GROUNDING_BEAT_WINDOW = 0.45;      // was 0.3 — 50% wider timing window
+const GROUNDING_BEAT_INTERVAL = 1.5;     // was 1.2 — slower rhythm, easier to read
+const GROUNDING_SUCCESS_THRESHOLD = 1;   // NEW — only need 1/3 hits to succeed (was hardcoded 2)
+const GROUNDING_TENSION_REWARD = 30;
+const GROUNDING_STABILITY_TIME = 5;
 const GROUNDING_PARTIAL_REWARD = 10;
 
+// CHANGE #1 — Plant image health thresholds
+const PLANT_IMG_GOOD_MIN = 67;           // NEW — health >= 67 shows good image
+const PLANT_IMG_OKAY_MIN = 34;           // NEW — health >= 34 shows okay image
+const PLANT_IMG_BAD_MIN = 1;             // NEW — health >= 1 shows bad image
+                                          // health <= 0 shows dead image
+
 // Scoring
-const SCORE_PER_HEALTHY_SEC = 1;     // per healthy bed per second
-const SCORE_RESTORE_BONUS = 15;      // bonus for restoring critical plant
+const SCORE_PER_HEALTHY_SEC = 1;
+const SCORE_RESTORE_BONUS = 15;
 const SCORE_GROUNDING_BONUS = 25;
 const SCORE_SURGE_SURVIVE = 20;
-const COMBO_THRESHOLD = 6;           // beds healthy to build combo
+const COMBO_THRESHOLD = 6;
 const COMBO_MULTIPLIER_STEP = 0.1;
 const COMBO_MAX_MULTIPLIER = 3.0;
 
 // Win/Lose
-const LOSE_WILTED_COUNT = 3;         // lose if this many plants hit 0 health
-const WIN_MIN_ALIVE = 7;// need at least this many alive to win
+const LOSE_WILTED_COUNT = 3;
+const WIN_MIN_ALIVE = 7;
 
-// Difficulty ramp (multiplier increase over full round)
-const DRAIN_RAMP_FACTOR = 0.5;        // drain rates increase by 60% over the round
-const SURGE_FREQ_RAMP = 0.4;         // surge frequency increases 40%
+// Difficulty ramp
+const DRAIN_RAMP_FACTOR = 0.5;
+const SURGE_FREQ_RAMP = 0.4;
 
 // Visual
 const BED_MARGIN = 12;
@@ -136,7 +150,7 @@ let prevState = STATE.TITLE;
 
 // Game variables
 let beds = [];
-let selectedBed = 0;       // index of currently selected bed
+let selectedBed = 0;
 let timer = ROUND_DURATION;
 let score = 0;
 let tensionMeter = 0;
@@ -147,12 +161,10 @@ let highestCombo = 0;
 // Surge state
 let surgeActive = false;
 let surgeTimer = 0;
-let surgeNextIn = 0;        // countdown to next surge
+let surgeNextIn = 0;
 let surgeCooldownLeft = 0;
 let surgesCompleted = 0;
 let surgeVisualIntensity = 0;
-
-// Uncertain zones are tracked per bed (bed.isUncertainZone, bed.uncertainTimer)
 
 // Grounding state
 let groundingAvailable = true;
@@ -163,7 +175,7 @@ let groundingStabilityLeft = 0;
 // Grounding mini-game state
 let groundingBeats = [];
 let groundingBeatIndex = 0;
-let groundingPhase = 0;     // 0 = waiting for expansion, 1 = active beat window
+let groundingPhase = 0;
 let groundingCircleRadius = 0;
 let groundingHits = 0;
 let groundingTimer = 0;
@@ -176,12 +188,15 @@ let waterCooldown = 0;
 let lightCooldown = 0;
 let airflowCooldown = 0;
 
+// CHANGE #4 — Global action lock timer
+let actionLockTimer = 0;
+
 // Input delay queue (for surge effect)
 let inputQueue = [];
 let surgeJitterX = 0;
 let surgeJitterY = 0;
 
-// Particles (lightweight)
+// Particles
 let particles = [];
 const MAX_PARTICLES = 60;
 
@@ -195,17 +210,65 @@ let stats = {
   totalRestores: 0,
 };
 
-// Title screen animation
 let titlePulses = [];
-
-// Buttons (for mouse interaction)
 let buttons = [];
-
-// Difficulty ramp multiplier
 let difficultyMult = 1.0;
-
-// Reduced effects mode
 let reducedEffects = false;
+
+// ============================================================
+// CHANGE #1 — Plant image variables
+// ============================================================
+let plantGoodImg = null;
+let plantOkayImg = null;
+let plantBadImg = null;
+let plantDeadImg = null;
+let imagesLoaded = false;  // fallback flag if images fail
+
+// ============================================================
+// CHANGE #1 — Preload plant images from assets/ folder
+// ============================================================
+function preload() {
+  // Attempt to load all 4 plant state images.
+  // If any fail, imagesLoaded stays false and we fall back
+  // to the old rectangle rendering (no crash).
+  try {
+    plantGoodImg = loadImage('assets/plant_good.png',
+      () => {}, // success callback (no-op)
+      () => { plantGoodImg = null; } // failure callback
+    );
+    plantOkayImg = loadImage('assets/plant_okay.png',
+      () => {},
+      () => { plantOkayImg = null; }
+    );
+    plantBadImg = loadImage('assets/plant_bad.png',
+      () => {},
+      () => { plantBadImg = null; }
+    );
+    plantDeadImg = loadImage('assets/plant_dead.png',
+      () => {},
+      () => { plantDeadImg = null; }
+    );
+  } catch (e) {
+    console.warn('Plant images could not be loaded, using fallback rendering.', e);
+  }
+}
+
+// Helper: check after setup whether all images loaded successfully
+function checkImagesLoaded() {
+  imagesLoaded = (plantGoodImg !== null && plantOkayImg !== null &&
+                  plantBadImg !== null && plantDeadImg !== null);
+  if (!imagesLoaded) {
+    console.warn('One or more plant images missing — using fallback shapes.');
+  }
+}
+
+// Helper: get the correct image for a given health value
+function getPlantImage(health) {
+  if (health <= 0) return plantDeadImg;
+  if (health < PLANT_IMG_OKAY_MIN) return plantBadImg;
+  if (health < PLANT_IMG_GOOD_MIN) return plantOkayImg;
+  return plantGoodImg;
+}
 
 // ============================================================
 // PLANT BED CLASS
@@ -216,40 +279,32 @@ class PlantBed {
     this.row = row;
     this.index = index;
 
-    // Needs and health
     this.health = 80 + random(-10, 10);
     this.water = 60 + random(-15, 15);
     this.light = 60 + random(-15, 15);
 
-    // Per-bed drain variation
     this.drainRateWater = BASE_WATER_DRAIN + random(-DRAIN_VARIATION, DRAIN_VARIATION);
     this.drainRateLight = BASE_LIGHT_DRAIN + random(-DRAIN_VARIATION, DRAIN_VARIATION);
 
-    // Airflow buff
     this.airflowActive = false;
     this.airflowTimer = 0;
 
-    // Uncertain zone
     this.isUncertainZone = false;
     this.uncertainTimer = 0;
 
-    // Alert states
     this.hasFalseAlert = false;
     this.isWilted = false;
 
-    // Display position (computed in layout)
     this.x = 0;
     this.y = 0;
     this.w = 0;
     this.h = 0;
 
-    // Visual effects
     this.flashTimer = 0;
     this.restoreFlash = 0;
     this.wasStressed = false;
   }
 
-  // Compute true urgency from needs
   get trueUrgency() {
     if (this.health <= 0) return 'dead';
     if (this.water < CRITICAL_THRESHOLD || this.light < CRITICAL_THRESHOLD) return 'critical';
@@ -257,11 +312,9 @@ class PlantBed {
     return 'healthy';
   }
 
-  // Display urgency (may be false during surge)
   get displayUrgency() {
     if (this.hasFalseAlert) return 'critical';
     if (this.isUncertainZone && surgeActive) {
-      // Slightly unreliable during surge
       if (random() < 0.2) {
         return random() < 0.5 ? 'warning' : 'healthy';
       }
@@ -275,19 +328,19 @@ class PlantBed {
     let drainMult = difficultyMult;
     if (this.airflowActive) drainMult *= AIRFLOW_DRAIN_REDUCTION;
 
-    // Drain needs over time
     this.water -= this.drainRateWater * drainMult * dt;
     this.light -= this.drainRateLight * drainMult * dt;
     this.water = constrain(this.water, 0, 100);
     this.light = constrain(this.light, 0, 100);
 
-    // Health changes
     if (this.water < CRITICAL_THRESHOLD || this.light < CRITICAL_THRESHOLD) {
-      this.health -= HEALTH_LOSS_RATE * dt;
+      // CHANGE #2 — Airflow reduces health loss when plant is stressed
+      let healthLoss = HEALTH_LOSS_RATE;
+      if (this.airflowActive) healthLoss *= 0.5; // halve health loss during airflow
+      this.health -= healthLoss * dt;
       this.wasStressed = true;
     } else if (this.water >= HEALTHY_THRESHOLD && this.light >= HEALTHY_THRESHOLD) {
       this.health += HEALTH_RECOVERY_RATE * dt;
-      // Check for restore bonus
       if (this.wasStressed && this.health > 50) {
         score += SCORE_RESTORE_BONUS * comboMultiplier;
         stats.totalRestores++;
@@ -296,15 +349,19 @@ class PlantBed {
         spawnParticle(this.x + this.w / 2, this.y + this.h / 2, COL.accent, '+' + floor(SCORE_RESTORE_BONUS * comboMultiplier));
       }
     }
+
+    // CHANGE #2 — Airflow grants passive health recovery while active
+    if (this.airflowActive && this.health > 0 && this.health < 100) {
+      this.health += AIRFLOW_HEALTH_RECOVERY * dt;
+    }
+
     this.health = constrain(this.health, 0, 100);
 
-    // Check wilted
     if (this.health <= 0) {
       this.isWilted = true;
       stats.plantsWilted++;
     }
 
-    // Update airflow timer
     if (this.airflowActive) {
       this.airflowTimer -= dt;
       if (this.airflowTimer <= 0) {
@@ -312,7 +369,6 @@ class PlantBed {
       }
     }
 
-    // Update uncertain zone timer
     if (this.isUncertainZone) {
       this.uncertainTimer -= dt;
       if (this.uncertainTimer <= 0) {
@@ -320,7 +376,6 @@ class PlantBed {
       }
     }
 
-    // Visual timers
     if (this.flashTimer > 0) this.flashTimer -= dt;
     if (this.restoreFlash > 0) this.restoreFlash -= dt;
   }
@@ -345,7 +400,7 @@ class PlantBed {
 }
 
 // ============================================================
-// PARTICLE SYSTEM (lightweight text popups / effects)
+// PARTICLE SYSTEM
 // ============================================================
 function spawnParticle(x, y, col, txt) {
   if (particles.length >= MAX_PARTICLES) particles.shift();
@@ -379,7 +434,7 @@ function drawParticles() {
 }
 
 // ============================================================
-// BUTTON HELPER (for mouse UI)
+// BUTTON HELPER
 // ============================================================
 class Button {
   constructor(x, y, w, h, label, callback, id) {
@@ -489,6 +544,7 @@ function initGame() {
   waterCooldown = 0;
   lightCooldown = 0;
   airflowCooldown = 0;
+  actionLockTimer = 0;  // CHANGE #4 — reset action lock
 
   inputQueue = [];
   particles = [];
@@ -511,7 +567,6 @@ function startSurge() {
   surgeTimer = random(SURGE_DURATION_MIN, SURGE_DURATION_MAX);
   surgeVisualIntensity = 1.0;
 
-  // Assign false alerts
   let available = beds.filter(b => !b.isWilted && b.trueUrgency !== 'critical');
   shuffle(available, true);
   let count = min(FALSE_ALERT_COUNT, available.length);
@@ -526,10 +581,8 @@ function endSurge() {
   stats.surgesSurvived++;
   score += SCORE_SURGE_SURVIVE * comboMultiplier;
 
-  // Clear false alerts
   for (let b of beds) b.hasFalseAlert = false;
 
-  // Create uncertain zones
   let available = beds.filter(b => !b.isWilted);
   shuffle(available, true);
   let count = floor(random(UNCERTAIN_ZONE_COUNT_MIN, UNCERTAIN_ZONE_COUNT_MAX + 1));
@@ -539,7 +592,6 @@ function endSurge() {
     available[i].uncertainTimer = random(UNCERTAIN_DURATION_MIN, UNCERTAIN_DURATION_MAX);
   }
 
-  // Set next surge timer
   let interval = lerp(SURGE_MAX_INTERVAL, SURGE_MIN_INTERVAL, (ROUND_DURATION - timer) / ROUND_DURATION * SURGE_FREQ_RAMP);
   surgeNextIn = random(interval * 0.8, interval * 1.2);
   surgeCooldownLeft = SURGE_COOLDOWN_MIN;
@@ -550,7 +602,6 @@ function updateSurge(dt) {
     surgeTimer -= dt;
     tensionMeter += TENSION_RISE_SURGE * dt;
 
-    // Jitter effect
     if (!reducedEffects) {
       surgeJitterX = random(-SURGE_JITTER_AMOUNT, SURGE_JITTER_AMOUNT);
       surgeJitterY = random(-SURGE_JITTER_AMOUNT, SURGE_JITTER_AMOUNT);
@@ -566,9 +617,6 @@ function updateSurge(dt) {
     surgeCooldownLeft -= dt;
     surgeNextIn -= dt;
 
-    // Tension increases surge likelihood
-    let tensionBonus = tensionMeter > 60 ? 1.5 : 1.0;
-
     if (surgeNextIn <= 0 && surgeCooldownLeft <= 0 && timer < (ROUND_DURATION - GRACE_PERIOD)) {
       startSurge();
     }
@@ -581,6 +629,8 @@ function updateSurge(dt) {
 // GROUNDING MINI-GAME
 // ============================================================
 function startGrounding() {
+  // CHANGE #4 — Respect action lock
+  if (actionLockTimer > 0) return;
   if (!groundingAvailable || groundingCooldownLeft > 0) return;
 
   prevState = gameState;
@@ -595,7 +645,6 @@ function startGrounding() {
   groundingFeedback = '';
   groundingFeedbackTimer = 0;
 
-  // Generate beat timings
   groundingBeats = [];
   for (let i = 0; i < GROUNDING_BEATS; i++) {
     groundingBeats.push({
@@ -609,35 +658,28 @@ function startGrounding() {
 function updateGrounding(dt) {
   groundingTimer += dt;
 
-  // Circle pulsing rhythm
+  // CHANGE #3 — Slower pulse rhythm using GROUNDING_BEAT_INTERVAL
   let beatPhase = (groundingTimer % GROUNDING_BEAT_INTERVAL) / GROUNDING_BEAT_INTERVAL;
   groundingCircleRadius = 30 + sin(beatPhase * PI) * 50;
 
-  // Update feedback timer
   if (groundingFeedbackTimer > 0) groundingFeedbackTimer -= dt;
 
-  // Check if all beats have passed
   if (groundingBeatIndex >= GROUNDING_BEATS) {
     if (!groundingComplete) {
       groundingComplete = true;
-      groundingTimer = 0; // reuse as delay timer
-    } else {
-      groundingTimer += dt; // wait briefly
-      // Actually this double-counts, let me fix
+      groundingTimer = 0;
     }
   }
 
   if (groundingComplete) {
-    // Wait a moment then return to game
-    // groundingTimer was reset, so it accumulates from 0
     if (groundingTimer > 1.5) {
       finishGrounding();
     }
   } else {
-    // Check if current beat window passed without input
     if (groundingBeatIndex < GROUNDING_BEATS) {
       let beat = groundingBeats[groundingBeatIndex];
-      if (groundingTimer > beat.time + GROUNDING_BEAT_WINDOW + 0.1) {
+      // CHANGE #3 — Use wider window constant for miss detection
+      if (groundingTimer > beat.time + GROUNDING_BEAT_WINDOW + 0.15) {
         beat.result = 'missed';
         groundingFeedback = 'Missed';
         groundingFeedbackTimer = 0.6;
@@ -646,10 +688,8 @@ function updateGrounding(dt) {
     }
   }
 
-  // Still update garden decay slowly during grounding
-  for (let bed of beds) {
-    bed.update(dt * 0.5); // half-speed drain during grounding
-  }
+  // Grounding fully pauses plant decay (player isn't punished for coping)
+  // (no bed.update call here)
 }
 
 function groundingInput() {
@@ -658,11 +698,17 @@ function groundingInput() {
   let beat = groundingBeats[groundingBeatIndex];
   let diff = abs(groundingTimer - beat.time);
 
+  // CHANGE #3 — Uses wider GROUNDING_BEAT_WINDOW for easier hits
   if (diff <= GROUNDING_BEAT_WINDOW) {
     beat.hit = true;
     beat.result = 'hit';
     groundingHits++;
-    groundingFeedback = 'Steady!';
+    // CHANGE #3 — Extra positive feedback for timing quality
+    if (diff <= GROUNDING_BEAT_WINDOW * 0.4) {
+      groundingFeedback = 'Perfect!';
+    } else {
+      groundingFeedback = 'Steady!';
+    }
     groundingFeedbackTimer = 0.5;
   } else if (groundingTimer < beat.time - GROUNDING_BEAT_WINDOW) {
     beat.result = 'early';
@@ -677,7 +723,8 @@ function groundingInput() {
 }
 
 function finishGrounding() {
-  let success = groundingHits >= 2;
+  // CHANGE #3 — Use configurable success threshold (default 1/3 hits)
+  let success = groundingHits >= GROUNDING_SUCCESS_THRESHOLD;
 
   if (success) {
     tensionMeter = max(0, tensionMeter - GROUNDING_TENSION_REWARD);
@@ -686,7 +733,6 @@ function finishGrounding() {
     stats.groundingSuccesses++;
     score += SCORE_GROUNDING_BONUS * comboMultiplier;
 
-    // Clear false alerts
     for (let b of beds) b.hasFalseAlert = false;
   } else {
     tensionMeter = max(0, tensionMeter - GROUNDING_PARTIAL_REWARD);
@@ -700,16 +746,13 @@ function finishGrounding() {
 // TENSION METER
 // ============================================================
 function updateTension(dt) {
-  // Rise from active alerts
   let activeAlerts = beds.filter(b => !b.isWilted && b.trueUrgency === 'critical').length;
   tensionMeter += activeAlerts * TENSION_RISE_ALERTS * dt * 0.3;
 
-  // Decay during calm
   if (!surgeActive && activeAlerts < 2) {
     tensionMeter -= TENSION_DECAY * dt;
   }
 
-  // Grounding stability calms tension faster
   if (groundingStabilityLeft > 0) {
     tensionMeter -= TENSION_DECAY * 2 * dt;
     groundingStabilityLeft -= dt;
@@ -717,11 +760,9 @@ function updateTension(dt) {
 
   tensionMeter = constrain(tensionMeter, 0, 100);
 
-  // Overload at 100
   if (tensionMeter >= 100) {
     tensionMeter = TENSION_OVERLOAD_RESET;
     comboMultiplier = max(1.0, comboMultiplier - 0.5);
-    // Brief visual flash handled in draw
   }
 }
 
@@ -734,7 +775,6 @@ function updateCombo(dt) {
   if (healthyCount >= COMBO_THRESHOLD) {
     comboCount++;
     comboMultiplier = min(COMBO_MAX_MULTIPLIER, 1.0 + floor(comboCount / 60) * COMBO_MULTIPLIER_STEP);
-    // comboCount increments per frame roughly... let's make it time-based
   } else {
     if (comboCount > 0) {
       comboCount = max(0, comboCount - 3);
@@ -746,17 +786,11 @@ function updateCombo(dt) {
   stats.peakCombo = highestCombo;
 }
 
-// ============================================================
-// SCORE: per-second awards
-// ============================================================
 function updateScore(dt) {
   let healthyCount = beds.filter(b => !b.isWilted && b.health > 40).length;
   score += healthyCount * SCORE_PER_HEALTHY_SEC * comboMultiplier * dt;
 }
 
-// ============================================================
-// DIFFICULTY RAMP
-// ============================================================
 function updateDifficulty() {
   let elapsed = ROUND_DURATION - timer;
   let progress = elapsed / ROUND_DURATION;
@@ -767,10 +801,12 @@ function updateDifficulty() {
 // ACTION HANDLING
 // ============================================================
 function doAction(type) {
+  // CHANGE #4 — Block all actions during action lock
+  if (actionLockTimer > 0) return;
+
   let bed = beds[selectedBed];
   if (!bed || bed.isWilted) return;
 
-  // Tension increase for uncertain zone interaction
   if (bed.isUncertainZone) {
     tensionMeter += TENSION_RISE_UNCERTAIN;
   }
@@ -778,19 +814,21 @@ function doAction(type) {
   if (type === 'water' && waterCooldown <= 0) {
     bed.applyWater();
     waterCooldown = ACTION_COOLDOWN;
+    actionLockTimer = ACTION_LOCK_DURATION;  // CHANGE #4 — trigger global lock
     spawnParticle(bed.x + bed.w / 2, bed.y + 10, COL.water, 'Water');
   } else if (type === 'light' && lightCooldown <= 0) {
     bed.applyLight();
     lightCooldown = ACTION_COOLDOWN;
+    actionLockTimer = ACTION_LOCK_DURATION;  // CHANGE #4 — trigger global lock
     spawnParticle(bed.x + bed.w / 2, bed.y + 10, COL.light, 'Light');
   } else if (type === 'airflow' && airflowCooldown <= 0) {
     bed.applyAirflow();
     airflowCooldown = AIRFLOW_COOLDOWN;
+    // CHANGE #4 — No action lock for airflow (already has long cooldown)
     spawnParticle(bed.x + bed.w / 2, bed.y + 10, COL.airflow, 'Airflow');
   }
 }
 
-// Process queued inputs (for surge delay)
 function processInputQueue(dt) {
   for (let i = inputQueue.length - 1; i >= 0; i--) {
     inputQueue[i].delay -= dt;
@@ -830,11 +868,7 @@ function checkEndConditions() {
   }
 }
 
-// ============================================================
-// COMPUTE GRADE
-// ============================================================
 function computeGrade() {
-  // Based on score relative to theoretical max
   let maxPossible = TOTAL_BEDS * SCORE_PER_HEALTHY_SEC * ROUND_DURATION * 2;
   let ratio = score / maxPossible;
   if (ratio > 0.6) return 'A';
@@ -843,9 +877,6 @@ function computeGrade() {
   return 'D';
 }
 
-// ============================================================
-// CLICK ON BED
-// ============================================================
 function getBedAtMouse(mx, my) {
   for (let i = 0; i < beds.length; i++) {
     let b = beds[i];
@@ -860,11 +891,9 @@ function getBedAtMouse(mx, my) {
 // DRAW FUNCTIONS
 // ============================================================
 
-// --- Title Screen ---
 function drawTitle() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
 
-  // Subtle background animation
   let t = millis() / 1000;
   noStroke();
   for (let i = 0; i < 8; i++) {
@@ -875,33 +904,28 @@ function drawTitle() {
     ellipse(x, y, r * 2, r * 2);
   }
 
-  // Title
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   textSize(52);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
   text('Garden Circuit', CANVAS_W / 2, CANVAS_H / 2 - 120);
 
-  // Tagline
   textStyle(NORMAL);
   textSize(18);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
   text('Keep the greenhouse in balance', CANVAS_W / 2, CANVAS_H / 2 - 70);
 
-  // Draw a decorative line
   stroke(COL.accent[0], COL.accent[1], COL.accent[2], 60);
   strokeWeight(1);
   line(CANVAS_W / 2 - 120, CANVAS_H / 2 - 45, CANVAS_W / 2 + 120, CANVAS_H / 2 - 45);
   noStroke();
 }
 
-// --- Instructions Screen ---
 function drawInstructions() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
 
   let cx = CANVAS_W / 2;
   let startY = 22;
-  // Reserve space for button at bottom (button is 48px tall + 16px margin)
   let maxTextY = CANVAS_H - 80;
 
   textAlign(CENTER, TOP);
@@ -915,20 +939,17 @@ function drawInstructions() {
   fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
   textAlign(LEFT, TOP);
 
-  // Two-column layout to fit everything
-  let colW = 480;
   let leftX = 40;
   let rightX = CANVAS_W / 2 + 30;
   let lineH = 18;
 
-  // ---- LEFT COLUMN ----
   let y = startY + 45;
 
   let leftLines = [
     { t: '[ OBJECTIVE ]', style: 'header' },
     { t: 'Keep 9 plant beds healthy for 90 seconds.', style: 'normal' },
     { t: 'Plants need Water and Light — both drain over time.', style: 'normal' },
-    { t: 'If needs drop too low, health decreases. Lose 4 plants = game over.', style: 'normal' },
+    { t: 'If needs drop too low, health decreases. Lose 3 plants = game over.', style: 'normal' },
     { t: '', style: 'normal' },
     { t: '[ CONTROLS ]', style: 'header' },
     { t: 'Arrow Keys / WASD — Move selection cursor', style: 'normal' },
@@ -964,7 +985,6 @@ function drawInstructions() {
     y += lineH;
   }
 
-  // ---- RIGHT COLUMN ----
   y = startY + 45;
 
   let rightLines = [
@@ -1013,7 +1033,6 @@ function drawInstructions() {
     y += lineH;
   }
 
-  // Divider line between columns
   stroke(COL.accent[0], COL.accent[1], COL.accent[2], 40);
   strokeWeight(1);
   line(CANVAS_W / 2 + 10, startY + 50, CANVAS_W / 2 + 10, maxTextY - 10);
@@ -1022,21 +1041,17 @@ function drawInstructions() {
 
 // --- Gameplay Drawing ---
 function drawGameplay() {
-  // Apply surge screen shake
   if (!reducedEffects && surgeVisualIntensity > 0.1) {
     translate(surgeJitterX * surgeVisualIntensity, surgeJitterY * surgeVisualIntensity);
   }
 
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
 
-  // Surge visual overlay
   if (surgeActive && !reducedEffects) {
-    // Faint red/noise overlay
     noStroke();
     fill(COL.surge[0], COL.surge[1], COL.surge[2], 15 + sin(millis() / 80) * 10);
     rect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Floating warning particles
     for (let i = 0; i < 3; i++) {
       let fx = random(boardX, boardX + boardW);
       let fy = random(boardY, boardY + boardH);
@@ -1047,12 +1062,10 @@ function drawGameplay() {
     }
   }
 
-  // Draw plant beds
   for (let bed of beds) {
     drawBed(bed);
   }
 
-  // Draw selected bed highlight
   if (beds[selectedBed]) {
     let sb = beds[selectedBed];
     noFill();
@@ -1062,13 +1075,9 @@ function drawGameplay() {
     noStroke();
   }
 
-  // Draw particles
   drawParticles();
-
-  // Draw side panel
   drawPanel();
 
-  // Surge indicator
   if (surgeActive) {
     fill(COL.surge[0], COL.surge[1], COL.surge[2], 180 + sin(millis() / 100) * 60);
     textAlign(CENTER, CENTER);
@@ -1077,26 +1086,34 @@ function drawGameplay() {
     text('⚡ SURGE ACTIVE ⚡', boardX + boardW / 2, boardY - 3);
     textStyle(NORMAL);
   }
+
+  // CHANGE #4 — Subtle action lock overlay on the board area
+  if (actionLockTimer > 0) {
+    noStroke();
+    fill(COL.bg[0], COL.bg[1], COL.bg[2], 30);
+    rect(boardX, boardY, boardW, boardH);
+  }
 }
 
+// ============================================================
+// CHANGE #1 — Rewritten drawBed() with plant images
+// ============================================================
 function drawBed(bed) {
   let bx = bed.x;
   let by = bed.y;
   let bw = bed.w;
   let bh = bed.h;
 
-  // Background
+  // --- Background rectangle (always drawn as base) ---
   if (bed.isWilted) {
     fill(COL.bedDead[0], COL.bedDead[1], COL.bedDead[2]);
   } else if (bed.isUncertainZone) {
-    // Subtle shimmer
     let shimmer = sin(millis() / 300 + bed.index) * 10;
     fill(COL.bedUncertain[0] + shimmer, COL.bedUncertain[1] + shimmer, COL.bedUncertain[2] + shimmer);
   } else {
     fill(COL.bedNormal[0], COL.bedNormal[1], COL.bedNormal[2]);
   }
 
-  // Flash effects
   if (bed.flashTimer > 0) {
     let flashAlpha = bed.flashTimer / 0.3;
     fill(lerpColor(
@@ -1120,60 +1137,96 @@ function drawBed(bed) {
   rect(bx, by, bw, bh, 4);
   noStroke();
 
-  if (bed.isWilted) {
-    // Dead plant indicator
-    fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 120);
+  // --- CHANGE #1: Draw plant image OR fallback icon ---
+  if (imagesLoaded) {
+    // Pick the correct image based on health thresholds
+    let img = getPlantImage(bed.health);
+    if (img) {
+      // Draw image centered in the upper portion of the bed
+      let imgSize = min(bw - 20, bh * 0.4);  // fit within bed
+      let imgX = bx + (bw - imgSize) / 2;
+      let imgY = by + 6;
+
+      push();
+      imageMode(CORNER);
+      // If dead, add dark tint overlay for extra clarity
+      if (bed.isWilted) {
+        tint(100, 60, 60, 180); // desaturated reddish tint
+      }
+      image(img, imgX, imgY, imgSize, imgSize);
+      noTint();
+      pop();
+    }
+  } else {
+    // Fallback: original text icon rendering (no images available)
+    if (bed.isWilted) {
+      fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 120);
+      textAlign(CENTER, CENTER);
+      textSize(28);
+      text('✕', bx + bw / 2, by + bh / 2 - 10);
+      textSize(12);
+      text('Wilted', bx + bw / 2, by + bh / 2 + 18);
+      return;
+    }
+
+    let healthColor = bed.health > 50 ?
+      COL.health :
+      [lerp(COL.healthLow[0], COL.health[0], bed.health / 50),
+       lerp(COL.healthLow[1], COL.health[1], bed.health / 50),
+       lerp(COL.healthLow[2], COL.health[2], bed.health / 50)];
+
+    fill(healthColor[0], healthColor[1], healthColor[2]);
     textAlign(CENTER, CENTER);
-    textSize(28);
-    text('✕', bx + bw / 2, by + bh / 2 - 10);
+    textSize(22);
+    let plantIcon = bed.health > 60 ? '❋' : bed.health > 30 ? '❊' : '✿';
+    text(plantIcon, bx + bw / 2, by + 24);
+  }
+
+  // If wilted and images loaded, still show "Wilted" label and skip meters
+  if (bed.isWilted) {
+    fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 180);
+    textAlign(CENTER, CENTER);
     textSize(12);
-    text('Wilted', bx + bw / 2, by + bh / 2 + 18);
+    textStyle(BOLD);
+    text('Wilted', bx + bw / 2, by + bh - 16);
+    textStyle(NORMAL);
     return;
   }
 
-  // Plant icon (simple)
+  // --- UI overlays (meters, labels, alerts) — drawn ON TOP of image ---
+
+  // Health bar
+  let barStartY = by + bh * 0.45;  // position bars below the plant image area
+  let barH = 7;
+  let barW = bw - 20;
+  let barX = bx + 10;
+
   let healthColor = bed.health > 50 ?
     COL.health :
     [lerp(COL.healthLow[0], COL.health[0], bed.health / 50),
      lerp(COL.healthLow[1], COL.health[1], bed.health / 50),
      lerp(COL.healthLow[2], COL.health[2], bed.health / 50)];
 
-  fill(healthColor[0], healthColor[1], healthColor[2]);
-  textAlign(CENTER, CENTER);
-  textSize(22);
-  let plantIcon = bed.health > 60 ? '❋' : bed.health > 30 ? '❊' : '✿';
-  text(plantIcon, bx + bw / 2, by + 24);
-
-  // Health bar
-  let barY = by + 44;
-  let barH = 7;
-  let barW = bw - 20;
-  let barX = bx + 10;
-
-  // Health bar bg
   fill(30, 35, 30);
-  rect(barX, barY, barW, barH, 2);
-  // Health bar fill
+  rect(barX, barStartY, barW, barH, 2);
   let hw = barW * bed.health / 100;
   fill(healthColor[0], healthColor[1], healthColor[2]);
-  rect(barX, barY, hw, barH, 2);
+  rect(barX, barStartY, hw, barH, 2);
 
-  // Labels
   textSize(9);
   textStyle(BOLD);
   fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
   textAlign(CENTER, TOP);
-  text('HP ' + floor(bed.health), bx + bw / 2, barY + barH + 2);
+  text('HP ' + floor(bed.health), bx + bw / 2, barStartY + barH + 2);
   textStyle(NORMAL);
 
   // Water bar
-  let wBarY = barY + barH + 16;
+  let wBarY = barStartY + barH + 16;
   fill(30, 35, 50);
   rect(barX, wBarY, barW, barH, 2);
   fill(COL.water[0], COL.water[1], COL.water[2]);
   rect(barX, wBarY, barW * bed.water / 100, barH, 2);
 
-  // Water icon + value
   textSize(9);
   fill(COL.water[0], COL.water[1], COL.water[2]);
   textAlign(LEFT, TOP);
@@ -1186,7 +1239,6 @@ function drawBed(bed) {
   fill(COL.light[0], COL.light[1], COL.light[2]);
   rect(barX, lBarY, barW * bed.light / 100, barH, 2);
 
-  // Light icon + value
   fill(COL.light[0], COL.light[1], COL.light[2]);
   textAlign(LEFT, TOP);
   text('☀' + floor(bed.light), barX, lBarY + barH + 2);
@@ -1198,36 +1250,32 @@ function drawBed(bed) {
     text('🌬' + floor(bed.airflowTimer) + 's', barX + barW, lBarY + barH + 2);
   }
 
-  // Status indicators
-  let urgency = bed.displayUrgency;
-
-  // Surge flicker effect on display
+  // Surge flicker overlay
   if (surgeActive && !reducedEffects && random() < 0.15) {
-    // Random flicker
     fill(COL.surge[0], COL.surge[1], COL.surge[2], 50);
     noStroke();
     rect(bx, by, bw, bh, 4);
   }
 
-  // False alert indicator
+  // False alert / urgency indicators
   if (bed.hasFalseAlert && !bed.isWilted) {
     fill(COL.falseAlert[0], COL.falseAlert[1], COL.falseAlert[2], 160 + sin(millis() / 150) * 60);
     textAlign(RIGHT, TOP);
     textSize(16);
     text('⚠', bx + bw - 4, by + 4);
-  } else if (urgency === 'critical') {
+  } else if (bed.displayUrgency === 'critical') {
     fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 180);
     textAlign(RIGHT, TOP);
     textSize(14);
     text('!!', bx + bw - 6, by + 4);
-  } else if (urgency === 'warning') {
+  } else if (bed.displayUrgency === 'warning') {
     fill(COL.light[0], COL.light[1], COL.light[2], 140);
     textAlign(RIGHT, TOP);
     textSize(13);
     text('!', bx + bw - 6, by + 6);
   }
 
-  // Uncertain zone indicator
+  // Uncertain zone border + label
   if (bed.isUncertainZone) {
     noFill();
     stroke(COL.bedUncertain[0] + 40, COL.bedUncertain[1] + 40, COL.bedUncertain[2] + 40, 100 + sin(millis() / 400 + bed.index) * 50);
@@ -1241,7 +1289,7 @@ function drawBed(bed) {
     text('uncertain', bx + 5, by + bh - 3);
   }
 
-  // Bed index (small, for debugging / identification)
+  // Bed index label
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 60);
   textAlign(LEFT, TOP);
   textSize(8);
@@ -1250,7 +1298,6 @@ function drawBed(bed) {
 
 // --- Side Panel ---
 function drawPanel() {
-  // Panel background
   fill(COL.panelBg[0], COL.panelBg[1], COL.panelBg[2]);
   stroke(50, 60, 50);
   strokeWeight(1);
@@ -1261,7 +1308,6 @@ function drawPanel() {
   let py = 20;
   let pw = PANEL_WIDTH - 40;
 
-  // Timer
   textAlign(LEFT, TOP);
   textStyle(BOLD);
   textSize(13);
@@ -1274,7 +1320,6 @@ function drawPanel() {
   text(floor(timer) + 's', px, py + 16);
   py += 60;
 
-  // Score
   textSize(13);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
   text('SCORE', px, py);
@@ -1283,11 +1328,9 @@ function drawPanel() {
   text(floor(score), px, py + 16);
   py += 52;
 
-  // Combo
   textSize(13);
   fill(COL.combo[0], COL.combo[1], COL.combo[2]);
   text('HARMONY  x' + nf(comboMultiplier, 1, 1), px, py);
-  // Combo bar
   py += 20;
   fill(30, 30, 20);
   rect(px, py, pw, 8, 3);
@@ -1295,7 +1338,6 @@ function drawPanel() {
   rect(px, py, pw * ((comboMultiplier - 1) / (COMBO_MAX_MULTIPLIER - 1)), 8, 3);
   py += 24;
 
-  // Tension Meter
   textSize(13);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
   text('TENSION', px, py);
@@ -1315,7 +1357,6 @@ function drawPanel() {
   textAlign(LEFT, TOP);
   py += 30;
 
-  // Surge status
   textSize(13);
   if (surgeActive) {
     fill(COL.surge[0], COL.surge[1], COL.surge[2]);
@@ -1328,7 +1369,6 @@ function drawPanel() {
   }
   py += 28;
 
-  // Grounding status
   textSize(13);
   fill(COL.grounding[0], COL.grounding[1], COL.grounding[2]);
   text('GROUNDING', px, py);
@@ -1337,8 +1377,6 @@ function drawPanel() {
     fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
     textSize(12);
     text('Cooldown: ' + floor(groundingCooldownLeft) + 's', px, py);
-
-    // Cooldown bar
     py += 16;
     fill(30, 30, 30);
     rect(px, py, pw, 8, 3);
@@ -1354,14 +1392,12 @@ function drawPanel() {
   }
   py += 24;
 
-  // Divider
   stroke(60, 70, 60, 80);
   strokeWeight(1);
   line(px, py, px + pw, py);
   noStroke();
   py += 14;
 
-  // Selected bed info
   let sb = beds[selectedBed];
   textSize(13);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
@@ -1392,10 +1428,8 @@ function drawPanel() {
   }
   py += 30;
 
-  // Action buttons (mouse clickable)
   drawActionButtons(px, py, pw);
 
-  // Wilted count at bottom
   let wiltedCount = beds.filter(b => b.isWilted).length;
   textAlign(LEFT, BOTTOM);
   textSize(12);
@@ -1417,7 +1451,6 @@ function drawActionButtons(px, py, pw) {
   let btnH = 32;
   let gap = 8;
 
-  // Create buttons only once, then just draw them
   if (actionBtns.length === 0) {
     actionBtns.push(new Button(px, py, btnW, btnH, '💧 Water  [Q]', () => queueAction(() => doAction('water')), 'water'));
     actionBtns.push(new Button(px, py + btnH + gap, btnW, btnH, '☀ Light  [E]', () => queueAction(() => doAction('light')), 'light'));
@@ -1425,13 +1458,11 @@ function drawActionButtons(px, py, pw) {
     actionBtns.push(new Button(px, py + 3 * (btnH + gap), btnW, btnH, '◉ Ground  [SPACE]', () => startGrounding(), 'ground'));
   }
 
-  // Update positions each frame (in case layout changes)
   actionBtns[0].y = py;
   actionBtns[1].y = py + btnH + gap;
   actionBtns[2].y = py + 2 * (btnH + gap);
   actionBtns[3].y = py + 3 * (btnH + gap);
 
-  // Show cooldown state
   for (let btn of actionBtns) {
     btn.checkHover(mouseX, mouseY);
 
@@ -1440,6 +1471,9 @@ function drawActionButtons(px, py, pw) {
     if (btn.id === 'light') available = lightCooldown <= 0;
     if (btn.id === 'airflow') available = airflowCooldown <= 0;
     if (btn.id === 'ground') available = groundingCooldownLeft <= 0 && gameState === STATE.PLAYING;
+
+    // CHANGE #4 — Action lock dims ALL action buttons
+    if (actionLockTimer > 0) available = false;
 
     if (!available) {
       fill(35, 40, 38);
@@ -1459,14 +1493,12 @@ function drawActionButtons(px, py, pw) {
 
 // --- Grounding Mini-Game Screen ---
 function drawGrounding() {
-  // Semi-transparent overlay
   fill(COL.bg[0], COL.bg[1], COL.bg[2], 200);
   rect(0, 0, CANVAS_W, CANVAS_H);
 
   let cx = CANVAS_W / 2;
   let cy = CANVAS_H / 2;
 
-  // Title
   fill(COL.grounding[0], COL.grounding[1], COL.grounding[2]);
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
@@ -1474,17 +1506,18 @@ function drawGrounding() {
   text('Grounding Routine', cx, cy - 140);
   textStyle(NORMAL);
 
-  // Instructions
+  // CHANGE #3 — Clearer instructions with hint about timing
   textSize(14);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
-  text('Press SPACE on each pulse beat', cx, cy - 110);
+  text('Press SPACE when the circle is largest', cx, cy - 110);
+  textSize(11);
+  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 150);
+  text('(generous timing — just match the rhythm)', cx, cy - 92);
 
-  // Pulsing circle
   let beatPhase;
   if (groundingBeatIndex < GROUNDING_BEATS && !groundingComplete) {
     let currentBeatTime = groundingBeats[groundingBeatIndex].time;
     let distToBeat = currentBeatTime - groundingTimer;
-    // Pulse grows as beat approaches
     beatPhase = 1.0 - constrain(abs(distToBeat) / (GROUNDING_BEAT_INTERVAL * 0.5), 0, 1);
   } else {
     beatPhase = 0.5;
@@ -1492,13 +1525,18 @@ function drawGrounding() {
 
   let radius = 30 + beatPhase * 60;
 
-  // Outer ring (target)
   noFill();
   stroke(COL.grounding[0], COL.grounding[1], COL.grounding[2], 80);
   strokeWeight(2);
   ellipse(cx, cy, 180, 180);
 
-  // Pulsing inner circle
+  // CHANGE #3 — Show timing window ring to help players see when to press
+  if (groundingBeatIndex < GROUNDING_BEATS && !groundingComplete) {
+    stroke(COL.grounding[0], COL.grounding[1], COL.grounding[2], 40);
+    strokeWeight(1);
+    ellipse(cx, cy, 160, 160);  // inner "safe zone" ring
+  }
+
   let alpha = 120 + beatPhase * 135;
   fill(COL.grounding[0], COL.grounding[1], COL.grounding[2], alpha);
   stroke(COL.grounding[0], COL.grounding[1], COL.grounding[2], 200);
@@ -1506,7 +1544,6 @@ function drawGrounding() {
   ellipse(cx, cy, radius * 2, radius * 2);
   noStroke();
 
-  // Beat indicators
   for (let i = 0; i < GROUNDING_BEATS; i++) {
     let bx = cx - 40 + i * 40;
     let by = cy + 120;
@@ -1523,9 +1560,21 @@ function drawGrounding() {
     ellipse(bx, by, 20, 20);
   }
 
-  // Feedback text
+  // CHANGE #3 — Show hit count so player knows progress
+  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 140);
+  textSize(11);
+  text(groundingHits + '/' + GROUNDING_SUCCESS_THRESHOLD + ' needed', cx, cy + 150);
+
   if (groundingFeedbackTimer > 0 && groundingFeedback) {
-    let feedCol = groundingFeedback === 'Steady!' ? COL.grounding : COL.falseAlert;
+    // CHANGE #3 — "Perfect!" gets a distinct gold color
+    let feedCol;
+    if (groundingFeedback === 'Perfect!') {
+      feedCol = COL.combo;
+    } else if (groundingFeedback === 'Steady!') {
+      feedCol = COL.grounding;
+    } else {
+      feedCol = COL.falseAlert;
+    }
     fill(feedCol[0], feedCol[1], feedCol[2], groundingFeedbackTimer / 0.6 * 255);
     textSize(20);
     textStyle(BOLD);
@@ -1533,9 +1582,8 @@ function drawGrounding() {
     textStyle(NORMAL);
   }
 
-  // Completion message
   if (groundingComplete) {
-    let success = groundingHits >= 2;
+    let success = groundingHits >= GROUNDING_SUCCESS_THRESHOLD;
     if (success) {
       fill(COL.grounding[0], COL.grounding[1], COL.grounding[2]);
       textSize(22);
@@ -1550,13 +1598,10 @@ function drawGrounding() {
   }
 }
 
-// --- Win Screen ---
+// --- Win/Lose/Pause screens (unchanged) ---
 function drawWin() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
-
   let cx = CANVAS_W / 2;
-
-  // Gentle celebration background
   let t = millis() / 1000;
   noStroke();
   for (let i = 0; i < 12; i++) {
@@ -1565,88 +1610,67 @@ function drawWin() {
     fill(COL.accent[0], COL.accent[1], COL.accent[2], 12);
     ellipse(x, y, 60, 60);
   }
-
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   textSize(42);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
   text('Greenhouse Stabilized', cx, 100);
-
   textStyle(NORMAL);
   textSize(18);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
   text('You kept the garden in balance.', cx, 150);
-
-  // Grade
   let grade = computeGrade();
   textSize(60);
   textStyle(BOLD);
   fill(COL.combo[0], COL.combo[1], COL.combo[2]);
   text(grade, cx, 230);
   textStyle(NORMAL);
-
-  // Stats
   drawEndStats(cx, 290);
 }
 
-// --- Lose Screen ---
 function drawLose() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
-
   let cx = CANVAS_W / 2;
-
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   textSize(36);
   fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
   text('The Garden Faded', cx, 100);
-
   textStyle(NORMAL);
   textSize(16);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
   text('Too many plants were lost — but every attempt is practice.', cx, 145);
   text('Adjust your strategy and try again.', cx, 168);
-
   drawEndStats(cx, 230);
 }
 
 function drawEndStats(cx, startY) {
   let y = startY;
   let lineH = 30;
-
   textSize(16);
   textAlign(CENTER, CENTER);
-
   fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
   text('Score: ' + floor(score), cx, y); y += lineH;
-
   fill(COL.combo[0], COL.combo[1], COL.combo[2]);
   text('Best Harmony: x' + nf(stats.peakCombo, 1, 1), cx, y); y += lineH;
-
   fill(COL.surge[0], COL.surge[1], COL.surge[2]);
   text('Surges Survived: ' + stats.surgesSurvived, cx, y); y += lineH;
-
   fill(COL.grounding[0], COL.grounding[1], COL.grounding[2]);
   text('Grounding: ' + stats.groundingSuccesses + ' / ' + stats.groundingAttempts + ' successful', cx, y); y += lineH;
-
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
   text('Plants Restored: ' + stats.totalRestores, cx, y); y += lineH;
-
   fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2]);
-  text('Plants Wilted: ' + stats.plantsWilted, cx, y); y += lineH + 10;
+  text('Plants Wilted: ' + stats.plantsWilted, cx, y);
 }
 
-// --- Pause Screen ---
 function drawPause() {
   fill(COL.bg[0], COL.bg[1], COL.bg[2], 180);
   rect(0, 0, CANVAS_W, CANVAS_H);
-
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   textSize(36);
   fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2]);
   text('PAUSED', CANVAS_W / 2, CANVAS_H / 2 - 30);
-
   textStyle(NORMAL);
   textSize(16);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2]);
@@ -1659,23 +1683,22 @@ function drawPause() {
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
   textFont('monospace');
+  checkImagesLoaded();  // CHANGE #1 — verify images after preload
   initGame();
   initMenuButtons();
 }
 
 // ============================================================
-// MENU BUTTON SETUP
+// MENU BUTTONS
 // ============================================================
 let menuButtons = [];
 
 function initMenuButtons() {
   menuButtons = [];
-
   let cx = CANVAS_W / 2;
   let btnW = 200;
   let btnH = 48;
 
-  // Title screen buttons
   menuButtons.push(new Button(cx - btnW / 2, CANVAS_H / 2 - 10, btnW, btnH, 'Start Game', () => {
     initGame();
     gameState = STATE.PLAYING;
@@ -1685,15 +1708,12 @@ function initMenuButtons() {
     gameState = STATE.INSTRUCTIONS;
   }, 'title_instructions'));
 
-  // Instructions back button
-// Instructions back button — centered at bottom with clear margin
   menuButtons.push(new Button(cx - btnW / 2, CANVAS_H - 55, btnW, btnH, 'Back to Title', () => {
     gameState = STATE.TITLE;
   }, 'instr_back'));
 
-  // Win/Lose restart buttons
   menuButtons.push(new Button(cx - btnW / 2, CANVAS_H - 120, btnW, btnH, 'Play Again', () => {
-    actionBtns = []; // Reset action buttons
+    actionBtns = [];
     initGame();
     gameState = STATE.PLAYING;
   }, 'end_restart'));
@@ -1705,13 +1725,12 @@ function initMenuButtons() {
 }
 
 // ============================================================
-// P5.JS DRAW LOOP
+// DRAW LOOP
 // ============================================================
 function draw() {
   let dt = deltaTime / 1000;
-  dt = min(dt, 0.05); // Cap delta time to avoid jumps
+  dt = min(dt, 0.05);
 
-  // Update hover on menu buttons
   for (let btn of menuButtons) {
     btn.visible = false;
     btn.checkHover(mouseX, mouseY);
@@ -1720,47 +1739,38 @@ function draw() {
   switch (gameState) {
     case STATE.TITLE:
       drawTitle();
-      // Show title buttons
       showButton('title_start');
       showButton('title_instructions');
       break;
-
     case STATE.INSTRUCTIONS:
       drawInstructions();
       showButton('instr_back');
       break;
-
     case STATE.PLAYING:
       updateGame(dt);
       drawGameplay();
       break;
-
     case STATE.GROUNDING:
-      // Still draw gameplay underneath
       drawGameplay();
       updateGrounding(dt);
       drawGrounding();
       break;
-
     case STATE.WIN:
       drawWin();
       showButton('end_restart');
       showButton('end_title');
       break;
-
     case STATE.LOSE:
       drawLose();
       showButton('end_restart');
       showButton('end_title');
       break;
-
     case STATE.PAUSED:
       drawGameplay();
       drawPause();
       break;
   }
 
-  // Draw visible menu buttons
   for (let btn of menuButtons) {
     if (btn.visible) btn.draw();
   }
@@ -1776,46 +1786,33 @@ function showButton(id) {
 }
 
 // ============================================================
-// MAIN UPDATE LOOP
+// MAIN UPDATE
 // ============================================================
 function updateGame(dt) {
-  // Timer
   timer -= dt;
   timer = max(0, timer);
 
-  // Difficulty ramp
   updateDifficulty();
 
-  // Update cooldowns
   if (waterCooldown > 0) waterCooldown -= dt;
   if (lightCooldown > 0) lightCooldown -= dt;
   if (airflowCooldown > 0) airflowCooldown -= dt;
   if (groundingCooldownLeft > 0) groundingCooldownLeft -= dt;
 
-  // Process input queue (surge delay)
+  // CHANGE #4 — Tick down action lock timer
+  if (actionLockTimer > 0) actionLockTimer -= dt;
+
   processInputQueue(dt);
 
-  // Update all plant beds
   for (let bed of beds) {
     bed.update(dt);
   }
 
-  // Update surge
   updateSurge(dt);
-
-  // Update tension
   updateTension(dt);
-
-  // Update combo
   updateCombo(dt);
-
-  // Update score
   updateScore(dt);
-
-  // Update particles
   updateParticles(dt);
-
-  // Check end conditions
   checkEndConditions();
 }
 
@@ -1823,7 +1820,6 @@ function updateGame(dt) {
 // INPUT HANDLING
 // ============================================================
 function keyPressed() {
-  // Global keys
   if (key === 'v' || key === 'V') {
     reducedEffects = !reducedEffects;
     return;
@@ -1839,23 +1835,19 @@ function keyPressed() {
         gameState = STATE.INSTRUCTIONS;
       }
       break;
-
     case STATE.INSTRUCTIONS:
       if (keyCode === ESCAPE || keyCode === BACKSPACE || key === 'i' || key === 'I') {
         gameState = STATE.TITLE;
       }
       break;
-
     case STATE.PLAYING:
       handlePlayingInput();
       break;
-
     case STATE.GROUNDING:
       if (key === ' ') {
         groundingInput();
       }
       break;
-
     case STATE.WIN:
     case STATE.LOSE:
       if (keyCode === ENTER || key === ' ') {
@@ -1868,7 +1860,6 @@ function keyPressed() {
         gameState = STATE.TITLE;
       }
       break;
-
     case STATE.PAUSED:
       if (key === 'p' || key === 'P') {
         gameState = STATE.PLAYING;
@@ -1878,72 +1869,38 @@ function keyPressed() {
 }
 
 function handlePlayingInput() {
-  // Movement — WASD or arrow keys
+  // Movement still works during action lock (CHANGE #4)
   let col = selectedBed % GRID_COLS;
   let row = floor(selectedBed / GRID_COLS);
 
-  if (key === 'w' || key === 'W' || keyCode === UP_ARROW) {
-    row = max(0, row - 1);
-  }
-  if (key === 's' || key === 'S' || keyCode === DOWN_ARROW) {
-    row = min(GRID_ROWS - 1, row + 1);
-  }
-  if (key === 'a' || key === 'A' || keyCode === LEFT_ARROW) {
-    col = max(0, col - 1);
-  }
-  if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) {
-    col = min(GRID_COLS - 1, col + 1);
-  }
+  if (key === 'w' || key === 'W' || keyCode === UP_ARROW) row = max(0, row - 1);
+  if (key === 's' || key === 'S' || keyCode === DOWN_ARROW) row = min(GRID_ROWS - 1, row + 1);
+  if (key === 'a' || key === 'A' || keyCode === LEFT_ARROW) col = max(0, col - 1);
+  if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) col = min(GRID_COLS - 1, col + 1);
   selectedBed = row * GRID_COLS + col;
 
-  // Actions
-  if (key === 'q' || key === 'Q') {
-    queueAction(() => doAction('water'));
-  }
-  if (key === 'e' || key === 'E') {
-    queueAction(() => doAction('light'));
-  }
-  if (key === 'r' || key === 'R') {
-    queueAction(() => doAction('airflow'));
-  }
-  if (key === ' ') {
-    startGrounding();
-  }
-
-  // Pause
-  if (key === 'p' || key === 'P') {
-    gameState = STATE.PAUSED;
-  }
+  // Actions (will be blocked inside doAction/startGrounding if locked)
+  if (key === 'q' || key === 'Q') queueAction(() => doAction('water'));
+  if (key === 'e' || key === 'E') queueAction(() => doAction('light'));
+  if (key === 'r' || key === 'R') queueAction(() => doAction('airflow'));
+  if (key === ' ') startGrounding();
+  if (key === 'p' || key === 'P') gameState = STATE.PAUSED;
 }
 
 function mousePressed() {
-  // Check menu buttons
   for (let btn of menuButtons) {
     if (btn.checkClick(mouseX, mouseY)) return;
   }
 
-  // Check action buttons during gameplay
   if (gameState === STATE.PLAYING) {
     for (let btn of actionBtns) {
       if (btn.checkClick(mouseX, mouseY)) return;
     }
-
-    // Click on bed to select
     let idx = getBedAtMouse(mouseX, mouseY);
-    if (idx >= 0) {
-      selectedBed = idx;
-    }
+    if (idx >= 0) selectedBed = idx;
   }
 }
 
-// Prevent default scrolling for arrow keys and space
-function keyDown(e) {
-  if ([32, 37, 38, 39, 40].includes(e.keyCode)) {
-    e.preventDefault();
-  }
-}
-
-// Attach keydown listener for preventing scroll
 if (typeof window !== 'undefined') {
   window.addEventListener('keydown', function(e) {
     if ([32, 37, 38, 39, 40].includes(e.keyCode)) {
@@ -1951,6 +1908,3 @@ if (typeof window !== 'undefined') {
     }
   });
 }
-
-
-
