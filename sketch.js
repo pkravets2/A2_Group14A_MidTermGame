@@ -63,7 +63,9 @@ const TENSION_DECAY = 3;
 const TENSION_OVERLOAD_RESET = 70;
 
 // Grounding
-const GROUNDING_COOLDOWN = 10;
+const GROUNDING_COOLDOWN = 15;
+const GROUNDING_SLOW_DURATION = 3;        // NEW — seconds of global drain slowdown
+const GROUNDING_SLOW_MULTIPLIER = 0.3;    // NEW — drain runs at 30% speed during slow
 const GROUNDING_BEATS = 3;
 const GROUNDING_BEAT_WINDOW = 0.45;
 const GROUNDING_BEAT_INTERVAL = 1.5;
@@ -205,6 +207,7 @@ let groundingTimer = 0;
 let groundingFeedback = '';
 let groundingFeedbackTimer = 0;
 let groundingComplete = false;
+let groundingSlowLeft = 0;                // NEW — tracks remaining slow time
 
 // Action cooldowns
 let waterCooldown = 0;
@@ -358,6 +361,7 @@ class PlantBed {
     if (this.isWilted) return;
     let drainMult = difficultyMult;
     if (this.airflowActive) drainMult *= AIRFLOW_DRAIN_REDUCTION;
+    if (groundingSlowLeft > 0) drainMult *= GROUNDING_SLOW_MULTIPLIER;  // NEW — global slow after grounding
 
     this.water -= this.drainRateWater * drainMult * dt;
     this.light -= this.drainRateLight * drainMult * dt;
@@ -513,6 +517,7 @@ function initGame() {
   surgeCooldownLeft = 0; surgesCompleted = 0; surgeVisualIntensity = 0;
   groundingAvailable = true; groundingCooldownLeft = 0;
   groundingSuccessCount = 0; groundingStabilityLeft = 0;
+  groundingSlowLeft = 0;    // NEW — reset grounding slow timer
   waterCooldown = 0; lightCooldown = 0; airflowCooldown = 0;
   actionLockTimer = 0;
   inputQueue = []; particles = [];
@@ -630,6 +635,7 @@ function finishGrounding() {
     groundingSuccessCount++; stats.groundingSuccesses++;
     score += SCORE_GROUNDING_BONUS * comboMultiplier;
     for (let b of beds) b.hasFalseAlert = false;
+    groundingSlowLeft = GROUNDING_SLOW_DURATION;   // NEW — activate global drain slow
   } else {
     tensionMeter = max(0, tensionMeter - GROUNDING_PARTIAL_REWARD);
   }
@@ -1503,6 +1509,7 @@ function updateGame(dt) {
   if (airflowCooldown > 0) airflowCooldown -= dt;
   if (groundingCooldownLeft > 0) groundingCooldownLeft -= dt;
   if (actionLockTimer > 0) actionLockTimer -= dt;
+  if (groundingSlowLeft > 0) groundingSlowLeft -= dt;   // NEW — tick down grounding slow
   processInputQueue(dt);
   for (let bed of beds) bed.update(dt);
   updateSurge(dt); updateTension(dt);
