@@ -255,14 +255,21 @@ function initSound() {
   soundInitialized = true;
 }
 
+let audioCtx = null;
+
 function playTone(freq, duration, vol, type) {
   if (soundMuted || !soundInitialized) return;
   try {
-    let osc = new p5.Oscillator(type || 'sine');
-    osc.freq(freq);
-    osc.amp(vol || 0.05);
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.05;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
     osc.start();
-    setTimeout(() => { try { osc.stop(); } catch(e) {} }, duration || 100);
+    osc.stop(audioCtx.currentTime + (duration || 100) / 1000);
   } catch(e) {}
 }
 
