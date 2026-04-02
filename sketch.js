@@ -43,15 +43,8 @@ const FALSE_ALERT_COUNT = 3;
 const SURGE_INPUT_DELAY = 0.1;
 const SURGE_JITTER_AMOUNT = 5;
 
-// Uncertain zones
-const UNCERTAIN_ZONE_COUNT_MIN = 2;
-const UNCERTAIN_ZONE_COUNT_MAX = 4;
-const UNCERTAIN_DURATION_MIN = 8;
-const UNCERTAIN_DURATION_MAX = 15;
-
 // Tension meter
 const TENSION_RISE_SURGE = 12;
-const TENSION_RISE_UNCERTAIN = 4;
 const TENSION_RISE_ALERTS = 1.2;
 const TENSION_DECAY = 3;
 const TENSION_OVERLOAD_RESET = 70;
@@ -122,7 +115,6 @@ const COL = {
   panelBg:     [20, 24, 38],
   bedNormal:   [40, 55, 45],
   bedSelected: [60, 90, 70],
-  bedUncertain:[55, 50, 65],
   bedDead:     [50, 35, 35],
   health:      [80, 200, 120],
   healthLow:   [200, 80, 80],
@@ -388,8 +380,6 @@ class PlantBed {
     this.drainRateLight = BASE_LIGHT_DRAIN + random(-DRAIN_VARIATION, DRAIN_VARIATION);
     this.airflowActive = false;
     this.airflowTimer = 0;
-    this.isUncertainZone = false;
-    this.uncertainTimer = 0;
     this.hasFalseAlert = false;
     this.isWilted = false;
     this.x = 0; this.y = 0; this.w = 0; this.h = 0;
@@ -407,9 +397,6 @@ class PlantBed {
 
   get displayUrgency() {
     if (this.hasFalseAlert) return 'critical';
-    if (this.isUncertainZone && surgeActive) {
-      if (random() < 0.2) return random() < 0.5 ? 'warning' : 'healthy';
-    }
     return this.trueUrgency;
   }
 
@@ -449,10 +436,6 @@ class PlantBed {
     if (this.airflowActive) {
       this.airflowTimer -= dt;
       if (this.airflowTimer <= 0) this.airflowActive = false;
-    }
-    if (this.isUncertainZone) {
-      this.uncertainTimer -= dt;
-      if (this.uncertainTimer <= 0) this.isUncertainZone = false;
     }
     if (this.flashTimer > 0) this.flashTimer -= dt;
     if (this.restoreFlash > 0) this.restoreFlash -= dt;
@@ -606,14 +589,6 @@ function endSurge() {
   score += SCORE_SURGE_SURVIVE * comboMultiplier;
   playSoundSurgeEnd();
   for (let b of beds) b.hasFalseAlert = false;
-  let available = beds.filter(b => !b.isWilted);
-  shuffle(available, true);
-  let count = floor(random(UNCERTAIN_ZONE_COUNT_MIN, UNCERTAIN_ZONE_COUNT_MAX + 1));
-  count = min(count, available.length);
-  for (let i = 0; i < count; i++) {
-    available[i].isUncertainZone = true;
-    available[i].uncertainTimer = random(UNCERTAIN_DURATION_MIN, UNCERTAIN_DURATION_MAX);
-  }
   let interval = lerp(SURGE_MAX_INTERVAL, SURGE_MIN_INTERVAL,
     (levelConfig.duration - timer) / levelConfig.duration * SURGE_FREQ_RAMP);
   // Scale interval by surgeMult (higher = more frequent)
@@ -691,7 +666,6 @@ function doAction(type) {
   if (actionLockTimer > 0) return;
   let bed = beds[selectedBed];
   if (!bed || bed.isWilted) return;
-  if (bed.isUncertainZone) tensionMeter += TENSION_RISE_UNCERTAIN;
   if (type === 'water' && waterCooldown <= 0) {
     bed.applyWater(); waterCooldown = ACTION_COOLDOWN;
     actionLockTimer = ACTION_LOCK_DURATION;
@@ -1175,10 +1149,7 @@ function drawBed(bed) {
   let bx = bed.x, by = bed.y, bw = bed.w, bh = bed.h;
 
   if (bed.isWilted) fill(COL.bedDead);
-  else if (bed.isUncertainZone) {
-    let s = sin(millis()/300 + bed.index)*10;
-    fill(COL.bedUncertain[0]+s, COL.bedUncertain[1]+s, COL.bedUncertain[2]+s);
-  } else fill(COL.bedNormal);
+  else fill(COL.bedNormal);
 
   if (bed.flashTimer > 0)
     fill(lerpColor(color(COL.bedNormal), color(COL.accent), (bed.flashTimer/0.3)*0.3));
@@ -1277,18 +1248,9 @@ function drawBed(bed) {
     textAlign(RIGHT,TOP); textSize(13); text('!', bx+bw-6, by+6);
   }
 
-  if (bed.isUncertainZone) {
-    noFill();
-    stroke(COL.bedUncertain[0]+40,COL.bedUncertain[1]+40,COL.bedUncertain[2]+40,
-      100+sin(millis()/400+bed.index)*50);
-    strokeWeight(2); rect(bx+2, by+2, bw-4, bh-4, 3); noStroke();
-    fill(180,160,220,180); textAlign(LEFT,TOP); textSize(8);
-    text('uncertain', bx+5, by+5);
-  }
-
   fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],80);
   textAlign(LEFT,TOP); textSize(8);
-  text('#'+(bed.index+1), bx+4, by+(bed.isUncertainZone ? 15 : 4));
+  text('#'+(bed.index+1), bx+4, by+4);
 }
 
 // ============================================================
@@ -1364,7 +1326,6 @@ function drawPanel() {
     fill(COL.water); text('Water:  '+floor(sb.water), px, py); py += 16;
     fill(COL.light); text('Light:  '+floor(sb.light), px, py); py += 16;
     if (sb.airflowActive) { fill(COL.airflow); text('Airflow: '+nf(sb.airflowTimer,1,1)+'s', px, py); }
-    if (sb.isUncertainZone) { fill(180,160,220); py += 16; text('\u2B21 Uncertain Zone', px, py); }
   } else if (sb && sb.isWilted) {
     fill(COL.healthLow); textSize(12); text('This plant has wilted.', px, py);
   }
