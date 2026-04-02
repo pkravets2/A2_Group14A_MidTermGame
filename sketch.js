@@ -866,53 +866,146 @@ function drawTutorial() {
   // Highlight specific areas by redrawing them on top
   drawTutorialHighlight(step);
 
-  // Dialog box at bottom center — much larger
-  let dlgW = 620, dlgH = 140;
-  let dlgX = (CANVAS_W - PANEL_WIDTH) / 2 - dlgW / 2 + 10;
-  let dlgY = CANVAS_H - 170;
+  // Smart dialog positioning based on what's highlighted
+  let dlgW = 560, dlgH = 130;
+  let dlgX, dlgY;
+  let arrowDir = null; // 'down', 'up', 'left', 'right' — points TOWARD the highlighted element
+  let arrowTargetX, arrowTargetY;
 
-  // Background with thicker border
-  fill(12, 16, 30, 235);
+  let hl = step.highlight;
+  let boardCenterX = boardX + boardW / 2;
+  let boardCenterY = boardY + boardH / 2;
+
+  if (hl === 'hp_bars' || hl === 'water_bars' || hl === 'light_bars') {
+    // Bars are at the bottom of beds — put dialog at top
+    dlgX = boardCenterX - dlgW / 2;
+    dlgY = 20;
+    arrowDir = 'down';
+    // Point arrow at approximate bar location
+    let bed = beds[0];
+    arrowTargetX = boardCenterX;
+    arrowTargetY = bed.y + bed.h - 40;
+  } else if (hl === 'beds' || hl === 'board') {
+    // Beds fill the board — put dialog at top
+    dlgX = boardCenterX - dlgW / 2;
+    dlgY = 20;
+    arrowDir = 'down';
+    arrowTargetX = boardCenterX;
+    arrowTargetY = boardCenterY;
+  } else if (hl === 'panel') {
+    // Panel is on right — put dialog on left
+    dlgX = 30;
+    dlgY = CANVAS_H / 2 - dlgH / 2;
+    arrowDir = 'right';
+    arrowTargetX = panelX;
+    arrowTargetY = CANVAS_H / 2;
+  } else if (hl === 'wilted') {
+    // Wilted counter is at bottom right of panel
+    dlgX = 30;
+    dlgY = CANVAS_H - dlgH - 80;
+    arrowDir = 'right';
+    arrowTargetX = panelX;
+    arrowTargetY = CANVAS_H - 40;
+  } else if (hl === 'tension_meter') {
+    // Tension meter is mid-right panel
+    dlgX = 30;
+    dlgY = 180;
+    arrowDir = 'right';
+    arrowTargetX = panelX;
+    arrowTargetY = 255;
+  } else if (hl === 'water_btn' || hl === 'light_btn' || hl === 'airflow_btn') {
+    // Action buttons are on right panel — put dialog on left
+    let btnIndex = hl === 'water_btn' ? 0 : hl === 'light_btn' ? 1 : 2;
+    let btn = actionBtns.length > btnIndex ? actionBtns[btnIndex] : null;
+    dlgX = 30;
+    dlgY = btn ? btn.y - dlgH / 2 + 16 : CANVAS_H / 2 - dlgH / 2;
+    // Clamp so dialog stays on screen
+    dlgY = constrain(dlgY, 20, CANVAS_H - dlgH - 60);
+    arrowDir = 'right';
+    arrowTargetX = btn ? btn.x : panelX;
+    arrowTargetY = btn ? btn.y + btn.h / 2 : CANVAS_H / 2;
+  } else {
+    // No highlight or null — center the dialog
+    dlgX = (CANVAS_W - PANEL_WIDTH) / 2 - dlgW / 2 + 10;
+    dlgY = CANVAS_H / 2 - dlgH / 2;
+  }
+
+  // Clamp dialog to screen bounds
+  dlgX = constrain(dlgX, 10, CANVAS_W - dlgW - 10);
+  dlgY = constrain(dlgY, 10, CANVAS_H - dlgH - 50);
+
+  // Draw arrow line from dialog edge toward highlighted element
+  if (arrowDir && arrowTargetX !== undefined) {
+    let lineStartX, lineStartY;
+    if (arrowDir === 'down') {
+      lineStartX = dlgX + dlgW / 2;
+      lineStartY = dlgY + dlgH;
+    } else if (arrowDir === 'up') {
+      lineStartX = dlgX + dlgW / 2;
+      lineStartY = dlgY;
+    } else if (arrowDir === 'right') {
+      lineStartX = dlgX + dlgW;
+      lineStartY = dlgY + dlgH / 2;
+    } else {
+      lineStartX = dlgX;
+      lineStartY = dlgY + dlgH / 2;
+    }
+    // Draw dashed-style arrow line
+    stroke(COL.accent[0], COL.accent[1], COL.accent[2], 120);
+    strokeWeight(2);
+    line(lineStartX, lineStartY, arrowTargetX, arrowTargetY);
+    // Arrowhead
+    let angle = atan2(arrowTargetY - lineStartY, arrowTargetX - lineStartX);
+    let ahSize = 10;
+    fill(COL.accent[0], COL.accent[1], COL.accent[2], 150);
+    noStroke();
+    push();
+    translate(arrowTargetX, arrowTargetY);
+    rotate(angle);
+    triangle(0, 0, -ahSize, -ahSize / 2, -ahSize, ahSize / 2);
+    pop();
+  }
+
+  // Dialog background
+  fill(12, 16, 30, 240);
   stroke(COL.accent[0], COL.accent[1], COL.accent[2], 180);
   strokeWeight(3);
   rect(dlgX, dlgY, dlgW, dlgH, 12);
   noStroke();
 
-  // Main text — much larger
+  // Main text — large and bold
   fill(COL.textPrimary);
   textAlign(CENTER, CENTER);
-  textSize(22);
+  textSize(20);
   textStyle(BOLD);
-  let textY = dlgY + dlgH / 2 - 18;
-  // Handle multiline text
   let lines = step.text.split('\n');
-  let lineHeight = 28;
+  let lineHeight = 26;
   let totalTextH = lines.length * lineHeight;
-  let startTextY = dlgY + dlgH / 2 - totalTextH / 2 - 8;
+  let startTextY = dlgY + dlgH / 2 - totalTextH / 2 - 10;
   for (let i = 0; i < lines.length; i++) {
     text(lines[i], dlgX + dlgW / 2, startTextY + i * lineHeight);
   }
   textStyle(NORMAL);
 
-  // Hint text — larger and more visible with pulsing
+  // Hint text — pulsing
   let hintAlpha = 160 + sin(millis() / 400) * 80;
   fill(COL.accent[0], COL.accent[1], COL.accent[2], hintAlpha);
-  textSize(16);
+  textSize(15);
   textStyle(BOLD);
-  text(step.hint, dlgX + dlgW / 2, dlgY + dlgH - 24);
+  text(step.hint, dlgX + dlgW / 2, dlgY + dlgH - 22);
   textStyle(NORMAL);
 
   // Pulsing down arrow for click-to-continue steps
   if (step.advanceOn === 'click') {
-    let arrowY = dlgY + dlgH + 8 + sin(millis() / 300) * 5;
+    let clickArrowY = dlgY + dlgH + 6 + sin(millis() / 300) * 5;
     fill(COL.accent[0], COL.accent[1], COL.accent[2], hintAlpha);
-    textSize(20);
+    textSize(18);
     textAlign(CENTER, CENTER);
-    text('\u25BC', dlgX + dlgW / 2, arrowY);
+    text('\u25BC', dlgX + dlgW / 2, clickArrowY);
   }
 
   // Step indicator dots
-  let dotY = dlgY + dlgH + 28;
+  let dotY2 = dlgY + dlgH + 24;
   let dotSpacing = 14;
   let totalDotsW = TUTORIAL_STEPS.length * dotSpacing;
   for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
@@ -921,7 +1014,7 @@ function drawTutorial() {
     else if (i === tutorialStep) fill(COL.accent[0], COL.accent[1], COL.accent[2], 200 + sin(millis() / 300) * 55);
     else fill(60, 70, 60);
     noStroke();
-    ellipse(dotX, dotY, 7, 7);
+    ellipse(dotX, dotY2, 7, 7);
   }
 }
 
@@ -2102,6 +2195,12 @@ function drawModeSelect() {
   let btnY1 = CANVAS_H / 2 - 20;
   text('Learn every mechanic step by step', CANVAS_W / 2, btnY1 + 70);
   text('Jump straight into Level 2', CANVAS_W / 2, btnY1 + 60 + 24 + 70);
+
+  // Back to main menu hint
+  textAlign(LEFT, BOTTOM);
+  textSize(13);
+  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 120);
+  text('ESC \u2014 Back to Main Menu', 20, CANVAS_H - 16);
 }
 
 function handleTutorialInput() {
