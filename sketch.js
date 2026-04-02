@@ -128,7 +128,7 @@ const COL = {
   healthLow:   [220, 75, 75],
   water:       [70, 155, 235],
   light:       [245, 210, 70],
-  airflow:     [180, 210, 230],
+  airflow:     [120, 200, 140],
   tension:     [200, 100, 100],
   textPrimary: [240, 242, 238],
   textSecondary:[150, 165, 175],
@@ -144,8 +144,8 @@ const COL = {
   waterBtnHov:  [40, 65, 120],
   lightBtn:     [80, 65, 25],
   lightBtnHov:  [110, 90, 35],
-  airflowBtn:   [30, 60, 75],
-  airflowBtnHov:[45, 85, 110],
+  airflowBtn:   [30, 65, 45],
+  airflowBtnHov:[40, 90, 60],
 };
 
 // ============================================================
@@ -285,7 +285,7 @@ const TUTORIAL_STEPS = [
     hint: 'Wait for the overwhelm...', highlight: 'tension_meter', advanceOn: 'overwhelm_end', forceTension: true },
 
   { id: 'breathe_explain',text: 'You froze up! That happens when tension\nhits max. But you can stop it!\nHold SPACE to Breathe and lower tension.',
-    hint: 'Hold the SPACE bar now!', highlight: null, advanceOn: 'breathe', forceTensionHigh: true },
+    hint: 'Hold the SPACE bar now!', highlight: 'breathe_btn', advanceOn: 'breathe', forceTensionHigh: true },
 
   { id: 'breathe_done',   text: 'Great job! Breathing lowers tension\nAND slows everything down.\nYou can only breathe when you have tension.',
     hint: '[ Click to continue ]', highlight: null, advanceOn: 'click' },
@@ -1095,6 +1095,16 @@ function drawTutorial() {
     arrowDir = 'right';
     arrowTargetX = panelX;
     arrowTargetY = 255;
+  } else if (hl === 'breathe_btn') {
+    // Breathe button is below the 3 action buttons on the panel
+    dlgX = 30;
+    // Approximate breathe button Y position (below 3 action btns)
+    let approxBreatheY = CANVAS_H - 220;
+    dlgY = approxBreatheY - dlgH / 2;
+    dlgY = constrain(dlgY, 20, CANVAS_H - dlgH - 60);
+    arrowDir = 'right';
+    arrowTargetX = panelX;
+    arrowTargetY = approxBreatheY;
   } else if (hl === 'water_btn' || hl === 'light_btn' || hl === 'airflow_btn') {
     // Action buttons are on right panel — put dialog on left
     let btnIndex = hl === 'water_btn' ? 0 : hl === 'light_btn' ? 1 : 2;
@@ -1148,15 +1158,19 @@ function drawTutorial() {
     pop();
   }
 
+  // Dialog dims when breathing during tutorial so focus is on the breathe
+  let dlgAlpha = (isBreathing && step.advanceOn === 'breathe') ? 80 : 240;
+  let textAlpha = (isBreathing && step.advanceOn === 'breathe') ? 60 : 255;
+
   // Dialog background
-  fill(12, 16, 30, 240);
-  stroke(COL.accent[0], COL.accent[1], COL.accent[2], 180);
+  fill(12, 16, 30, dlgAlpha);
+  stroke(COL.accent[0], COL.accent[1], COL.accent[2], dlgAlpha * 0.75);
   strokeWeight(3);
   rect(dlgX, dlgY, dlgW, dlgH, 12);
   noStroke();
 
   // Main text — large and bold
-  fill(COL.textPrimary);
+  fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2], textAlpha);
   textAlign(CENTER, CENTER);
   textSize(20);
   textStyle(BOLD);
@@ -1170,7 +1184,7 @@ function drawTutorial() {
   textStyle(NORMAL);
 
   // Hint text — pulsing
-  let hintAlpha = 160 + sin(millis() / 400) * 80;
+  let hintAlpha = isBreathing && step.advanceOn === 'breathe' ? 40 : 160 + sin(millis() / 400) * 80;
   fill(COL.accent[0], COL.accent[1], COL.accent[2], hintAlpha);
   textSize(15);
   textStyle(BOLD);
@@ -1314,12 +1328,27 @@ function drawTutorialHighlight(step) {
     drawPanel();
     // Highlight tension meter area — approximate position in panel
     let px = panelX + 20, pw = PANEL_WIDTH - 40;
-    // Tension meter is after combo bar, approximate y position
     let tensionY = 220;
     noFill();
     stroke(COL.tension[0], COL.tension[1], COL.tension[2], pulseAlpha);
     strokeWeight(3);
     rect(px - 6, tensionY - 6, pw + 12, 70, 6);
+    pop();
+  }
+
+  if (hl === 'breathe_btn') {
+    push();
+    drawPanel();
+    // Highlight the breathe button area at bottom of action buttons
+    let px2 = panelX + 20, pw2 = PANEL_WIDTH - 40;
+    // Breathe button is the 4th button below the 3 action buttons
+    // Approximate its Y based on drawActionButtons layout
+    let btnH2 = 38, gap2 = 8;
+    let approxBreatheY2 = CANVAS_H - 220;
+    noFill();
+    stroke(160, 170, 180, pulseAlpha);
+    strokeWeight(4);
+    rect(px2 - 4, approxBreatheY2 - 4, pw2 + 8, btnH2 + 8, 8);
     pop();
   }
 }
@@ -1675,15 +1704,15 @@ function drawGameplayBoard() {
     text('Take a moment.', boardX + boardW/2, CANVAS_H/2 + 15);
   }
 
-  // Breathing visual overlay
+  // Breathing visual overlay — soft grey calm
   if (isBreathing) {
-    let breatheAlpha = 20 + sin(millis() / 500) * 10;
-    fill(80, 180, 220, breatheAlpha);
+    let breatheAlpha = 18 + sin(millis() / 500) * 8;
+    fill(140, 150, 160, breatheAlpha);
     noStroke();
     rect(0, 0, CANVAS_W, CANVAS_H);
     // Calming pulse circle in center
     let pulseSize = 60 + sin(millis() / 600) * 20;
-    fill(80, 180, 220, 25);
+    fill(160, 170, 180, 20);
     ellipse(boardX + boardW/2, CANVAS_H/2, pulseSize, pulseSize);
   }
 }
@@ -2060,34 +2089,34 @@ function drawActionButtons(px, py, pw) {
   rect(px, breatheY + 2, btnW, btnH, 6);
 
   if (isBreathing) {
-    // Active breathing state — calming blue
+    // Active breathing state — calming grey pulse
     let breathePulse = 0.7 + sin(millis() / 500) * 0.3;
-    fill(40 * breathePulse, 100 * breathePulse, 130 * breathePulse);
-    stroke(80, 180, 220, 180);
+    fill(70 * breathePulse, 75 * breathePulse, 80 * breathePulse);
+    stroke(160, 170, 180, 180);
     strokeWeight(2);
     rect(px, breatheY, btnW, btnH, 6);
     noStroke();
-    fill(200, 230, 255);
+    fill(220, 225, 230);
     textAlign(CENTER, CENTER); textSize(15); textStyle(BOLD);
     text('Breathing...', px + btnW/2, breatheY + btnH/2);
     textStyle(NORMAL);
   } else if (!breatheAvail) {
-    // On cooldown
+    // On cooldown or no tension
     fill(42, 46, 44); stroke(55, 60, 55); strokeWeight(1);
     rect(px, breatheY, btnW, btnH, 6); noStroke();
     fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 80);
     textAlign(CENTER, CENTER); textSize(15);
     text('\u{1F4A8} Breathe [Space] ' + (breatheCooldown > 0 ? nf(breatheCooldown, 1, 0) + 's' : ''), px + btnW/2, breatheY + btnH/2);
   } else {
-    // Available
+    // Available — soft grey
     let hov = mouseX >= px && mouseX <= px + btnW && mouseY >= breatheY && mouseY <= breatheY + btnH;
-    fill(hov ? [35, 70, 85] : [25, 55, 70]);
-    stroke(80, 180, 220, hov ? 180 : 100);
+    fill(hov ? [60, 65, 70] : [45, 50, 55]);
+    stroke(160, 170, 180, hov ? 180 : 100);
     strokeWeight(1.5);
     rect(px, breatheY, btnW, btnH, 6);
     noStroke();
     // Inner glow
-    fill(80, 180, 220, 40);
+    fill(160, 170, 180, 40);
     rect(px + 1, breatheY + 1, btnW - 2, 1, 1);
     fill(COL.buttonText);
     textAlign(CENTER, CENTER); textSize(15); textStyle(BOLD);
