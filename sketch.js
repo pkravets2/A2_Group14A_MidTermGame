@@ -74,7 +74,7 @@ const PANEL_WIDTH = 260;
 // LEVEL CONFIGURATION
 // ============================================================
 const LEVELS = [
-  { level: 1, cols: 2, rows: 1, duration: 30, drainMult: 0.7, surgeMult: 0,    label: 'Level 1' },
+  { level: 1, cols: 2, rows: 1, duration: 15, drainMult: 0.7, surgeMult: 0,    label: 'Level 1' },
   { level: 2, cols: 2, rows: 2, duration: 30, drainMult: 0.8, surgeMult: 0.5,  label: 'Level 2' },
   { level: 3, cols: 3, rows: 2, duration: 35, drainMult: 0.9, surgeMult: 0.7,  label: 'Level 3' },
   { level: 4, cols: 3, rows: 2, duration: 45, drainMult: 1.0, surgeMult: 0.85, label: 'Level 4' },
@@ -1345,15 +1345,15 @@ function drawInstructionsOverlay() {
   textAlign(CENTER, TOP); textStyle(BOLD);
   textSize(42);
   fill(COL.accent[0], COL.accent[1], COL.accent[2], 25);
-  text('How to Play', cx, oy + 12);
+  text('How to Play', cx, oy + 50);
   textSize(38);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
-  text('How to Play', cx, oy + 14);
+  text('How to Play', cx, oy + 52);
 
   // === TOP SECTION: Action cards ===
   let cardW = 200, cardH = 120, cardGap = 30;
   let cardsStartX = cx - (3 * cardW + 2 * cardGap) / 2;
-  let cardsY = oy + 68;
+  let cardsY = oy + 108;
 
   let actions = [
     { icon: '\uD83D\uDCA7', key: 'Q', desc: 'Water the plant', col: COL.water },
