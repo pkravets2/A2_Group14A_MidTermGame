@@ -44,7 +44,7 @@ const SURGE_INPUT_DELAY = 0.1;
 const SURGE_JITTER_AMOUNT = 5;
 
 // Tension meter
-const TENSION_RISE_SURGE = 8;
+const TENSION_RISE_SURGE = 4;
 const TENSION_RISE_ALERTS = 0.7;
 const TENSION_DECAY = 2;
 const TENSION_OVERLOAD_RESET = 40;
@@ -782,7 +782,7 @@ function updateSurge(dt) {
     return;
   }
   if (surgeActive) {
-    surgeTimer -= dt; tensionMeter += TENSION_RISE_SURGE * dt;
+    surgeTimer -= dt;
     if (!reducedEffects) {
       surgeJitterX = random(-SURGE_JITTER_AMOUNT, SURGE_JITTER_AMOUNT);
       surgeJitterY = random(-SURGE_JITTER_AMOUNT, SURGE_JITTER_AMOUNT);
