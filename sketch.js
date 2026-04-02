@@ -3017,7 +3017,7 @@ function handleTutorialInput() {
     if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) col = min(currentGridCols - 1, col + 1);
     selectedBed = row * currentGridCols + col;
 
-    if (selectedBed !== prevSelected && step.advanceOn === 'select') advanceTutorial();
+    if (step.advanceOn === 'select') advanceTutorial();
   }
 
   // Action keys — only respond to the action the current step requires
@@ -3101,7 +3101,7 @@ function mousePressed() {
         if (idx >= 0) {
           let prev = selectedBed;
           selectedBed = idx;
-          if (prev !== selectedBed && step.advanceOn === 'select') advanceTutorial();
+          if (step.advanceOn === 'select') advanceTutorial();
         }
       }
 
