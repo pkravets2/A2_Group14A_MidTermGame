@@ -96,8 +96,8 @@ const LEVELS = [
 const TITLE_VIDEO_FILE = 'assets/title.mp4';
 const TITLE_FALLBACK_IMG = 'assets/title_bg.png';
 
-const TITLE_START_BTN = { x: 300, y: 595, w: 250, h: 95 };
-const TITLE_INSTR_BTN = { x: 580, y: 595, w: 280, h: 95 };
+const TITLE_START_BTN = { x: 300, y: 615, w: 220, h: 75 };
+const TITLE_INSTR_BTN = { x: 580, y: 615, w: 220, h: 75 };
 
 // Instructions overlay layout
 const INSTR_OVERLAY_X = 60;
