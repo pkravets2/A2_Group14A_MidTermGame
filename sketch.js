@@ -84,10 +84,9 @@ const PANEL_WIDTH = 260;
 const LEVELS = [
   { level: 1, cols: 2, rows: 1, duration: 15, drainMult: 0.7, surgeMult: 0,    label: 'Level 1' },
   { level: 2, cols: 2, rows: 2, duration: 30, drainMult: 0.8, surgeMult: 0.5,  label: 'Level 2' },
-  { level: 3, cols: 3, rows: 2, duration: 35, drainMult: 0.9, surgeMult: 0.7,  label: 'Level 3' },
-  { level: 4, cols: 3, rows: 2, duration: 45, drainMult: 1.0, surgeMult: 0.85, label: 'Level 4' },
-  { level: 5, cols: 3, rows: 3, duration: 60, drainMult: 1.1, surgeMult: 1.0,  label: 'Level 5' },
-  { level: 6, cols: 4, rows: 3, duration: 90, drainMult: 1.3, surgeMult: 1.2,  label: 'Final Level' },
+  { level: 3, cols: 3, rows: 2, duration: 40, drainMult: 0.9, surgeMult: 0.7,  label: 'Level 3' },
+  { level: 4, cols: 3, rows: 3, duration: 60, drainMult: 1.1, surgeMult: 1.0,  label: 'Level 4' },
+  { level: 5, cols: 4, rows: 3, duration: 90, drainMult: 1.3, surgeMult: 1.2,  label: 'Final Level' },
 ];
 
 // ============================================================
@@ -717,9 +716,13 @@ function initGame(lvlIndex) {
   currentGridCols = levelConfig.cols;
   currentGridRows = levelConfig.rows;
 
-  // Calculate lose threshold: ~30% of beds, min 1
+  // Lose threshold: how many plants can wilt before you lose
   let totalBeds = currentGridCols * currentGridRows;
-  currentLoseThreshold = max(1, floor(totalBeds * 0.3));
+  if (totalBeds <= 2) currentLoseThreshold = 1;
+  else if (totalBeds <= 4) currentLoseThreshold = 2;
+  else if (totalBeds <= 6) currentLoseThreshold = 2;
+  else if (totalBeds <= 9) currentLoseThreshold = 3;
+  else currentLoseThreshold = 4;
 
   beds = [];
   for (let r = 0; r < currentGridRows; r++)
