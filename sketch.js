@@ -111,33 +111,33 @@ let debugShowHitboxes = false;
 // COLOR PALETTE
 // ============================================================
 const COL = {
-  bg:          [26, 30, 46],
-  panelBg:     [20, 24, 38],
-  bedNormal:   [40, 55, 45],
+  bg:          [22, 27, 34],
+  panelBg:     [18, 22, 30],
+  bedNormal:   [35, 50, 40],
   bedSelected: [60, 90, 70],
   bedDead:     [50, 35, 35],
-  health:      [80, 200, 120],
-  healthLow:   [200, 80, 80],
-  water:       [80, 150, 220],
-  light:       [230, 200, 80],
+  health:      [90, 210, 130],
+  healthLow:   [220, 75, 75],
+  water:       [70, 155, 235],
+  light:       [245, 210, 70],
   airflow:     [180, 210, 230],
   tension:     [200, 100, 100],
-  textPrimary: [230, 235, 240],
-  textSecondary:[160, 170, 180],
+  textPrimary: [240, 242, 238],
+  textSecondary:[150, 165, 175],
   surge:       [180, 60, 60],
-  combo:       [240, 200, 80],
-  accent:      [100, 200, 150],
+  combo:       [255, 210, 65],
+  accent:      [95, 215, 155],
   falseAlert:  [220, 130, 60],
-  buttonBg:    [50, 70, 60],
-  buttonHover: [70, 100, 80],
+  buttonBg:    [45, 65, 55],
+  buttonHover: [60, 90, 70],
   buttonText:  [230, 240, 230],
   // Per-action button colors
-  waterBtn:     [35, 50, 75],
-  waterBtnHov:  [50, 70, 110],
-  lightBtn:     [70, 60, 30],
-  lightBtnHov:  [100, 85, 40],
-  airflowBtn:   [35, 60, 70],
-  airflowBtnHov:[50, 85, 100],
+  waterBtn:     [30, 50, 85],
+  waterBtnHov:  [40, 65, 120],
+  lightBtn:     [80, 65, 25],
+  lightBtnHov:  [110, 90, 35],
+  airflowBtn:   [30, 60, 75],
+  airflowBtnHov:[45, 85, 110],
 };
 
 // ============================================================
@@ -543,14 +543,20 @@ class Button {
   draw() {
     if (!this.visible) return;
     let col = this.hovered ? COL.buttonHover : COL.buttonBg;
+    // Hover glow effect
+    if (this.hovered) {
+      noStroke();
+      fill(COL.accent[0], COL.accent[1], COL.accent[2], 25);
+      rect(this.x - 3, this.y - 3, this.w + 6, this.h + 6, 9);
+    }
     fill(col[0], col[1], col[2]);
-    stroke(COL.accent[0], COL.accent[1], COL.accent[2], 120);
+    stroke(COL.accent[0], COL.accent[1], COL.accent[2], this.hovered ? 180 : 120);
     strokeWeight(1.5);
     rect(this.x, this.y, this.w, this.h, 6);
     fill(COL.buttonText[0], COL.buttonText[1], COL.buttonText[2]);
     noStroke();
     textAlign(CENTER, CENTER);
-    textSize(16);
+    textSize(17);
     textStyle(BOLD);
     text(this.label, this.x + this.w / 2, this.y + this.h / 2);
   }
@@ -1182,17 +1188,28 @@ function drawCountdown() {
   else if (countdownTimer < 3) { displayText = '1'; displayColor = COL.accent; }
   else { displayText = 'GO!'; displayColor = COL.combo; displaySize = 80; }
 
+  let cx = (CANVAS_W - PANEL_WIDTH) / 2 + 10;
+
+  // Level name in accent color above
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
+  textSize(24);
+  fill(COL.accent[0], COL.accent[1], COL.accent[2]);
+  text(levelConfig.label, cx, CANVAS_H / 2 - 80);
+
+  // Glow behind countdown number
+  textSize(displaySize + 30);
+  fill(displayColor[0], displayColor[1], displayColor[2], 30);
+  text(displayText, cx, CANVAS_H / 2);
+  textSize(displaySize + 12);
+  fill(displayColor[0], displayColor[1], displayColor[2], 50);
+  text(displayText, cx, CANVAS_H / 2);
+
+  // Main countdown number
   textSize(displaySize);
   fill(displayColor[0], displayColor[1], displayColor[2]);
-  text(displayText, (CANVAS_W - PANEL_WIDTH) / 2 + 10, CANVAS_H / 2);
+  text(displayText, cx, CANVAS_H / 2);
   textStyle(NORMAL);
-
-  // Level label above countdown
-  textSize(22);
-  fill(COL.textSecondary);
-  text(levelConfig.label, (CANVAS_W - PANEL_WIDTH) / 2 + 10, CANVAS_H / 2 - 80);
 }
 
 // ============================================================
@@ -1313,8 +1330,8 @@ function drawInstructionsOverlay() {
     let ax = cardsStartX + i * (cardW + cardGap);
     let a = actions[i];
 
-    // Card background
-    fill(30, 35, 50, 200);
+    // Card background — warmer tone
+    fill(32, 36, 45, 210);
     stroke(a.col[0], a.col[1], a.col[2], 100);
     strokeWeight(1.5);
     rect(ax, cardsY, cardW, cardH, 8);
@@ -1325,13 +1342,13 @@ function drawInstructionsOverlay() {
     fill(a.col[0], a.col[1], a.col[2]);
     text(a.icon, ax + cardW / 2, cardsY + 28);
 
-    // Key binding
-    textSize(18); textStyle(BOLD);
+    // Key binding — bigger
+    textSize(20); textStyle(BOLD);
     fill(COL.textPrimary);
     text(a.key, ax + cardW / 2, cardsY + 55);
 
-    // Description
-    textSize(13); textStyle(NORMAL);
+    // Description — slightly bigger
+    textSize(14); textStyle(NORMAL);
     fill(COL.textSecondary);
     text(a.desc, ax + cardW / 2, cardsY + 78);
   }
@@ -1494,13 +1511,16 @@ function drawBed(bed) {
   }
 
   // Bars at bottom
-  let barH = 6, barW = bw-16, barX = bx+8, barGap = 4, labelH = 10;
+  let barH = 8, barW = bw-16, barX = bx+8, barGap = 4, labelH = 11;
   let bottomPad = 6;
   let totalBarArea = 3*(barH+labelH+barGap);
   let barAreaTop = by + bh - bottomPad - totalBarArea;
 
-  fill(0,0,0,140); noStroke();
-  rect(bx+1, barAreaTop-4, bw-2, bh-(barAreaTop-by)+3, 0,0,4,4);
+  fill(0,0,0,120); noStroke();
+  rect(bx+1, barAreaTop-6, bw-2, bh-(barAreaTop-by)+5, 4,4,4,4);
+  // Slightly lighter inner background so bars pop
+  fill(30,35,30,60);
+  rect(bx+3, barAreaTop-4, bw-6, bh-(barAreaTop-by)+2, 3,3,4,4);
 
   let hc = bed.health > 50 ? COL.health :
     [lerp(COL.healthLow[0],COL.health[0],bed.health/50),
@@ -1509,20 +1529,25 @@ function drawBed(bed) {
 
   let curY = barAreaTop;
 
-  textSize(8); textStyle(BOLD); fill(hc); textAlign(LEFT,TOP);
+  textSize(9); textStyle(BOLD); fill(hc); textAlign(LEFT,TOP);
   text('HP '+floor(bed.health), barX, curY); textStyle(NORMAL);
   curY += labelH;
   fill(20,25,20); rect(barX, curY, barW, barH, 2);
-  fill(hc); rect(barX, curY, barW*bed.health/100, barH, 2);
+  let hpW = barW*bed.health/100;
+  fill(hc); rect(barX, curY, hpW, barH, 2);
+  // Glow edge on top of filled bar
+  if (hpW > 2) { fill(hc[0]+40,hc[1]+40,hc[2]+40,120); rect(barX, curY, hpW, 1, 1); }
   curY += barH + barGap;
 
-  textSize(8); fill(COL.water); textAlign(LEFT,TOP);
+  textSize(9); fill(COL.water); textAlign(LEFT,TOP);
   text('\uD83D\uDCA7 '+floor(bed.water), barX, curY); curY += labelH;
   fill(20,25,35); rect(barX, curY, barW, barH, 2);
-  fill(COL.water); rect(barX, curY, barW*bed.water/100, barH, 2);
+  let wW = barW*bed.water/100;
+  fill(COL.water); rect(barX, curY, wW, barH, 2);
+  if (wW > 2) { fill(COL.water[0]+40,COL.water[1]+40,COL.water[2]+20,120); rect(barX, curY, wW, 1, 1); }
   curY += barH + barGap;
 
-  textSize(8); fill(COL.light); textAlign(LEFT,TOP);
+  textSize(9); fill(COL.light); textAlign(LEFT,TOP);
   text('\u2600 '+floor(bed.light), barX, curY);
   if (bed.airflowActive) {
     fill(COL.airflow[0],COL.airflow[1],COL.airflow[2],200);
@@ -1531,7 +1556,9 @@ function drawBed(bed) {
   }
   curY += labelH;
   fill(20,25,20); rect(barX, curY, barW, barH, 2);
-  fill(COL.light); rect(barX, curY, barW*bed.light/100, barH, 2);
+  let lW = barW*bed.light/100;
+  fill(COL.light); rect(barX, curY, lW, barH, 2);
+  if (lW > 2) { fill(COL.light[0]+10,COL.light[1]+20,COL.light[2]+40,120); rect(barX, curY, lW, 1, 1); }
 
   if (surgeActive && !reducedEffects && random() < 0.15) {
     fill(COL.surge[0],COL.surge[1],COL.surge[2],50); noStroke();
@@ -1561,16 +1588,23 @@ function drawPanel() {
   fill(COL.panelBg); stroke(50,60,50); strokeWeight(1);
   rect(panelX, 0, PANEL_WIDTH, CANVAS_H); noStroke();
 
+  // Subtle inner glow gradient at top
+  for (let i = 0; i < 80; i++) {
+    let a = map(i, 0, 80, 40, 0);
+    fill(30, 45, 40, a);
+    rect(panelX+1, i, PANEL_WIDTH-2, 1);
+  }
+
   let px = panelX+20, py = 20, pw = PANEL_WIDTH-40;
 
   // Level indicator
-  textAlign(LEFT,TOP); textStyle(BOLD); textSize(16);
+  textAlign(LEFT,TOP); textStyle(BOLD); textSize(18);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
-  text(levelConfig.label, px, py);
+  text('\u{1F33F} ' + levelConfig.label, px, py);
 
   // Level progress dots
   let dotStartX = px;
-  let dotY = py + 22;
+  let dotY = py + 26;
   for (let i = 0; i < LEVELS.length; i++) {
     let dx = dotStartX + i * 16;
     if (i < currentLevel) fill(COL.accent[0], COL.accent[1], COL.accent[2]);
@@ -1579,33 +1613,48 @@ function drawPanel() {
     noStroke();
     ellipse(dx + 5, dotY + 4, 8, 8);
   }
-  py += 42;
+  py += 46;
 
+  // Timer with circular background
   textStyle(BOLD); textSize(13);
   fill(COL.textSecondary); text('TIME', px, py);
-  textSize(30);
+  let timerVal = floor(timer);
+  // Subtle circular bg behind timer number
+  fill(25, 30, 35, 80);
+  noStroke();
+  ellipse(px + 30, py + 36, 56, 56);
+  textSize(36);
   fill(timer < 15 ? COL.healthLow : COL.textPrimary);
-  text(floor(timer)+'s', px, py+16); py += 60;
+  text(timerVal+'s', px, py+16); py += 68;
 
   textSize(13); fill(COL.textSecondary); text('SCORE', px, py);
-  textSize(24); fill(COL.textPrimary); text(floor(score), px, py+16); py += 52;
+  textSize(28); fill(COL.textPrimary); text(floor(score), px, py+16); py += 56;
 
   textSize(13); fill(COL.combo);
   text('HARMONY  x'+nf(comboMultiplier,1,1), px, py); py += 20;
-  fill(30,30,20); rect(px, py, pw, 8, 3);
-  fill(COL.combo); rect(px, py, pw*((comboMultiplier-1)/(COMBO_MAX_MULTIPLIER-1)), 8, 3);
-  py += 24;
+  // Inner shadow behind harmony bar
+  fill(15,15,10); rect(px, py, pw, 12, 4);
+  fill(30,30,20); rect(px+1, py+1, pw-2, 10, 3);
+  fill(COL.combo); rect(px, py, pw*((comboMultiplier-1)/(COMBO_MAX_MULTIPLIER-1)), 12, 4);
+  py += 28;
 
   // Tension (only show if surges are active for this level)
   if (levelConfig.surgeMult > 0) {
     textSize(13); fill(COL.textSecondary); text('TENSION', px, py); py += 18;
-    fill(30,25,25); rect(px, py, pw, 14, 4);
+    // Glow effect when tension > 60
+    if (tensionMeter > 60) {
+      fill(200, 60, 60, 20 + sin(millis()/200)*15);
+      noStroke();
+      rect(px-4, py-4, pw+8, 26, 6);
+    }
+    fill(25,20,20); rect(px, py, pw, 18, 5);
+    fill(30,25,25); rect(px+1, py+1, pw-2, 16, 4);
     let tc = tensionMeter<30 ? [80,180,120] : tensionMeter<60 ? [200,180,60] :
              tensionMeter<80 ? [220,120,50] : [200,60,60];
-    fill(tc); rect(px, py, pw*tensionMeter/100, 14, 4);
-    fill(COL.textPrimary); textAlign(CENTER,CENTER); textSize(10);
-    text(floor(tensionMeter), px+pw/2, py+7);
-    textAlign(LEFT,TOP); py += 30;
+    fill(tc); rect(px, py, pw*tensionMeter/100, 18, 5);
+    fill(COL.textPrimary); textAlign(CENTER,CENTER); textSize(11);
+    text(floor(tensionMeter), px+pw/2, py+9);
+    textAlign(LEFT,TOP); py += 34;
 
     textSize(13);
     if (surgeActive) { fill(COL.surge); textStyle(BOLD); text('\u26A1 SURGE ACTIVE', px, py); textStyle(NORMAL); }
@@ -1615,7 +1664,14 @@ function drawPanel() {
     py += 10;
   }
 
-  stroke(60,70,60,80); strokeWeight(1); line(px, py, px+pw, py); noStroke(); py += 14;
+  // Gradient fade divider
+  noStroke();
+  for (let i = 0; i < pw; i++) {
+    let a = sin(map(i, 0, pw, 0, PI)) * 80;
+    fill(COL.accent[0], COL.accent[1], COL.accent[2], a);
+    rect(px+i, py, 1, 1);
+  }
+  py += 14;
 
   let sb = beds[selectedBed];
   textSize(13); fill(COL.textSecondary);
@@ -1623,10 +1679,14 @@ function drawPanel() {
 
   if (sb && !sb.isWilted) {
     textSize(12);
-    fill(COL.textPrimary); text('Health: '+floor(sb.health), px, py); py += 16;
-    fill(COL.water); text('Water:  '+floor(sb.water), px, py); py += 16;
-    fill(COL.light); text('Light:  '+floor(sb.light), px, py); py += 16;
-    if (sb.airflowActive) { fill(COL.airflow); text('Airflow: '+nf(sb.airflowTimer,1,1)+'s', px, py); }
+    // Mini colored dots before each stat
+    fill(COL.health); noStroke(); ellipse(px+4, py+6, 6, 6);
+    fill(COL.textPrimary); text('  Health: '+floor(sb.health), px+6, py); py += 16;
+    fill(COL.water); ellipse(px+4, py+6, 6, 6);
+    fill(COL.water); text('  Water:  '+floor(sb.water), px+6, py); py += 16;
+    fill(COL.light); ellipse(px+4, py+6, 6, 6);
+    fill(COL.light); text('  Light:  '+floor(sb.light), px+6, py); py += 16;
+    if (sb.airflowActive) { fill(COL.airflow); ellipse(px+4, py+6, 6, 6); text('  Airflow: '+nf(sb.airflowTimer,1,1)+'s', px+6, py); }
   } else if (sb && sb.isWilted) {
     fill(COL.healthLow); textSize(12); text('This plant has wilted.', px, py);
   }
@@ -1635,10 +1695,11 @@ function drawPanel() {
   drawActionButtons(px, py, pw);
 
   let wc = beds.filter(b => b.isWilted).length;
-  textAlign(LEFT,BOTTOM); textSize(12);
+  textAlign(LEFT,BOTTOM); textSize(14);
   fill(wc >= currentLoseThreshold-1 ? COL.healthLow : COL.textSecondary);
-  text('Wilted: '+wc+' / '+currentLoseThreshold+' max', px, CANVAS_H-38);
-  textSize(10); fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],100);
+  let wiltWarning = wc >= currentLoseThreshold-1 ? '\u26A0 ' : '';
+  text(wiltWarning+'Wilted: '+wc+' / '+currentLoseThreshold+' max', px, CANVAS_H-38);
+  textSize(11); fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],140);
   text('Esc/P=Pause  V=Effects  M=Mute', px, CANVAS_H-18);
 }
 
@@ -1648,15 +1709,18 @@ function drawPanel() {
 let actionBtns = [];
 
 function drawActionButtons(px, py, pw) {
-  let btnW = pw, btnH = 32, gap = 8;
+  let btnW = pw, btnH = 38, gap = 8;
   if (actionBtns.length === 0) {
     actionBtns.push(new Button(px, py, btnW, btnH, '\uD83D\uDCA7 Water  [Q]', () => queueAction(() => doAction('water')), 'water'));
     actionBtns.push(new Button(px, py+btnH+gap, btnW, btnH, '\u2600 Light  [E]', () => queueAction(() => doAction('light')), 'light'));
     actionBtns.push(new Button(px, py+2*(btnH+gap), btnW, btnH, '\uD83C\uDF2C Airflow  [R]', () => queueAction(() => doAction('airflow')), 'airflow'));
   }
   actionBtns[0].y = py;
+  actionBtns[0].h = btnH;
   actionBtns[1].y = py + btnH + gap;
+  actionBtns[1].h = btnH;
   actionBtns[2].y = py + 2*(btnH+gap);
+  actionBtns[2].h = btnH;
 
   // Color mapping for each button
   let btnColors = {
@@ -1673,24 +1737,32 @@ function drawActionButtons(px, py, pw) {
     if (btn.id === 'airflow') available = airflowCooldown <= 0;
     if (actionLockTimer > 0) available = false;
 
+    // Bottom shadow for all buttons
+    noStroke();
+    fill(8, 10, 8, 60);
+    rect(btn.x, btn.y + 2, btn.w, btn.h, 6);
+
     if (!available) {
-      fill(35,40,38); stroke(50,55,50); strokeWeight(1);
+      fill(42,46,44); stroke(55,60,55); strokeWeight(1);
       rect(btn.x, btn.y, btn.w, btn.h, 6); noStroke();
-      fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],100);
-      textAlign(CENTER,CENTER); textSize(14);
+      fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],80);
+      textAlign(CENTER,CENTER); textSize(15);
       text(btn.label, btn.x+btn.w/2, btn.y+btn.h/2);
     } else {
       // Use color-coded button
       let colors = btnColors[btn.id];
       let col = btn.hovered ? colors.hover : colors.base;
       fill(col[0], col[1], col[2]);
-      stroke(COL.accent[0], COL.accent[1], COL.accent[2], 120);
+      stroke(COL.accent[0], COL.accent[1], COL.accent[2], btn.hovered ? 180 : 120);
       strokeWeight(1.5);
       rect(btn.x, btn.y, btn.w, btn.h, 6);
-      fill(COL.buttonText[0], COL.buttonText[1], COL.buttonText[2]);
+      // Inner glow along top edge
       noStroke();
+      fill(255, 255, 255, 25);
+      rect(btn.x+2, btn.y+1, btn.w-4, 1, 1);
+      fill(COL.buttonText[0], COL.buttonText[1], COL.buttonText[2]);
       textAlign(CENTER, CENTER);
-      textSize(14);
+      textSize(15);
       textStyle(BOLD);
       text(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
       textStyle(NORMAL);
@@ -1751,7 +1823,23 @@ function drawPause() {
   fill(COL.bg[0], COL.bg[1], COL.bg[2], 190);
   rect(0, 0, CANVAS_W, CANVAS_H);
 
+  // Subtle vignette effect (darker edges)
+  noStroke();
+  for (let i = 0; i < 60; i++) {
+    let a = map(i, 0, 60, 40, 0);
+    fill(0, 0, 0, a);
+    rect(0, i, CANVAS_W, 1);
+    rect(0, CANVAS_H - i, CANVAS_W, 1);
+    rect(i, 0, 1, CANVAS_H);
+    rect(CANVAS_W - i, 0, 1, CANVAS_H);
+  }
+
   textAlign(CENTER, CENTER);
+  // Game title above PAUSED
+  textStyle(BOLD); textSize(20);
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 180);
+  text('Garden Circuit', CANVAS_W/2, CANVAS_H/2 - 170);
+
   textStyle(BOLD); textSize(36);
   fill(COL.textPrimary);
   text('PAUSED', CANVAS_W/2, CANVAS_H/2 - 140);
@@ -1777,23 +1865,37 @@ function drawPause() {
 function drawLevelComplete() {
   background(COL.bg); let cx = CANVAS_W/2;
   let t = millis()/1000; noStroke();
-  for (let i = 0; i < 10; i++) {
-    fill(COL.accent[0],COL.accent[1],COL.accent[2],15);
-    ellipse(cx+cos(t*0.2+i*0.6)*280, CANVAS_H/2+sin(t*0.3+i*0.8)*180, 50, 50);
+  // Larger, more visible celebration particles
+  for (let i = 0; i < 15; i++) {
+    let pc = i % 3 === 0 ? COL.accent : i % 3 === 1 ? COL.combo : COL.water;
+    fill(pc[0],pc[1],pc[2], 20 + sin(t*0.5+i)*8);
+    let sz = 60 + sin(t*0.4+i)*15;
+    ellipse(cx+cos(t*0.2+i*0.6)*280, CANVAS_H/2+sin(t*0.3+i*0.8)*180, sz, sz);
   }
   textAlign(CENTER,CENTER); textStyle(BOLD); textSize(40);
-  fill(COL.accent); text(levelConfig.label + ' Complete!', cx, 120);
+  fill(COL.accent); text(levelConfig.label + ' Complete!', cx, 100);
   textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
-  text('Well done! The garden holds.', cx, 170);
+  text('Well done! The garden holds.', cx, 145);
 
-  let y = 230, lh = 30;
+  // Grade display
+  let grade = computeGrade();
+  textStyle(BOLD); textSize(56);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 40);
+  text(grade, cx, 200);
+  textSize(48);
+  fill(COL.combo);
+  text(grade, cx, 200);
+  textStyle(NORMAL); textSize(14); fill(COL.textSecondary);
+  text('Grade', cx, 235);
+
+  let y = 275, lh = 30;
   textSize(16);
-  fill(COL.textPrimary); text('Score: '+floor(score), cx, y); y += lh;
-  fill(COL.combo); text('Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
+  fill(COL.textPrimary); text('\uD83D\uDCCA Score: '+floor(score), cx, y); y += lh;
+  fill(COL.combo); text('\uD83C\uDFB5 Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
   if (levelConfig.surgeMult > 0) {
-    fill(COL.surge); text('Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
+    fill(COL.surge); text('\u26A1 Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
   }
-  fill(COL.healthLow); text('Plants Wilted: '+stats.plantsWilted, cx, y);
+  fill(COL.healthLow); text('\uD83E\uDD40 Plants Wilted: '+stats.plantsWilted, cx, y);
 }
 
 // ============================================================
@@ -1802,28 +1904,48 @@ function drawLevelComplete() {
 function drawCongrats() {
   background(COL.bg); let cx = CANVAS_W/2;
   let t = millis()/1000; noStroke();
-  // More particles for celebration
-  for (let i = 0; i < 20; i++) {
-    let pc = i % 3 === 0 ? COL.accent : i % 3 === 1 ? COL.combo : COL.water;
-    fill(pc[0],pc[1],pc[2], 12 + sin(t*0.5+i)*6);
-    ellipse(cx+cos(t*0.15+i*0.3)*350, CANVAS_H/2+sin(t*0.2+i*0.5)*250, 40+sin(t+i)*10, 40+sin(t+i)*10);
+  // More celebratory particles — more of them, more colors
+  for (let i = 0; i < 30; i++) {
+    let pc = i % 5 === 0 ? COL.accent : i % 5 === 1 ? COL.combo : i % 5 === 2 ? COL.water : i % 5 === 3 ? COL.health : COL.light;
+    fill(pc[0],pc[1],pc[2], 14 + sin(t*0.5+i)*7);
+    let sz = 45 + sin(t*0.6+i)*12;
+    ellipse(cx+cos(t*0.15+i*0.21)*380, CANVAS_H/2+sin(t*0.2+i*0.35)*270, sz, sz);
   }
 
-  textAlign(CENTER,CENTER); textStyle(BOLD); textSize(48);
-  // Gentle glow/pulse on title
+  textAlign(CENTER,CENTER); textStyle(BOLD);
+  // Golden glow behind title (blurred/larger with low alpha)
+  textSize(56);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 35);
+  text('Congratulations!', cx, 90);
+  textSize(52);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 50);
+  text('Congratulations!', cx, 90);
+  // Main title
+  textSize(48);
   let pulse = 200 + sin(t*2)*55;
   fill(COL.combo[0], COL.combo[1], COL.combo[2], pulse);
-  text('Congratulations!', cx, 100);
+  text('Congratulations!', cx, 90);
 
   textStyle(NORMAL); textSize(18); fill(COL.textSecondary);
-  text('You completed all levels of Garden Circuit.', cx, 155);
+  text('You completed all levels of Garden Circuit.', cx, 140);
 
-  let y = 220, lh = 30;
+  // Grade display
+  let grade = computeGrade();
+  textStyle(BOLD); textSize(60);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 35);
+  text(grade, cx, 190);
+  textSize(50);
+  fill(COL.combo);
+  text(grade, cx, 190);
+  textStyle(NORMAL); textSize(14); fill(COL.textSecondary);
+  text('Final Grade', cx, 225);
+
+  let y = 260, lh = 30;
   textSize(16);
-  fill(COL.textPrimary); text('Final Score: '+floor(score), cx, y); y += lh;
-  fill(COL.combo); text('Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
-  fill(COL.surge); text('Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
-  fill(COL.healthLow); text('Plants Wilted: '+stats.plantsWilted, cx, y); y += lh + 15;
+  fill(COL.textPrimary); text('\uD83D\uDCCA Final Score: '+floor(score), cx, y); y += lh;
+  fill(COL.combo); text('\uD83C\uDFB5 Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
+  fill(COL.surge); text('\u26A1 Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
+  fill(COL.healthLow); text('\uD83E\uDD40 Plants Wilted: '+stats.plantsWilted, cx, y); y += lh + 15;
 
   textSize(13); textStyle(ITALIC);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 160);
@@ -1838,21 +1960,32 @@ function drawCongrats() {
 // ============================================================
 function drawLose() {
   background(COL.bg); let cx = CANVAS_W/2;
-  textAlign(CENTER,CENTER); textStyle(BOLD); textSize(36);
-  fill(COL.textPrimary); text('The Garden Faded', cx, 100);
-  textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
-  text('Too many plants were lost \u2014 but every attempt is practice.', cx, 145);
-  text('Adjust your strategy and try again.', cx, 168);
+  // Subtle dark red tint over background
+  noStroke();
+  fill(60, 15, 15, 40);
+  rect(0, 0, CANVAS_W, CANVAS_H);
 
-  let y = 230, lh = 30;
+  textAlign(CENTER,CENTER); textStyle(BOLD);
+  // Fade/glow effect behind title
+  textSize(44);
+  fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 25);
+  text('The Garden Faded', cx, 100);
+  textSize(40);
+  fill(COL.textPrimary);
+  text('The Garden Faded', cx, 100);
+  textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
+  text('Too many plants were lost \u2014 but every attempt is practice.', cx, 150);
+  text('Adjust your strategy and try again.', cx, 173);
+
+  let y = 235, lh = 30;
   textSize(16);
-  fill(COL.textPrimary); text('Score: '+floor(score), cx, y); y += lh;
-  fill(COL.combo); text('Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
+  fill(COL.textPrimary); text('\uD83D\uDCCA Score: '+floor(score), cx, y); y += lh;
+  fill(COL.combo); text('\uD83C\uDFB5 Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
   if (levelConfig.surgeMult > 0) {
-    fill(COL.surge); text('Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
+    fill(COL.surge); text('\u26A1 Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
   }
   fill(COL.accent); text('Plants Restored: '+stats.totalRestores, cx, y); y += lh;
-  fill(COL.healthLow); text('Plants Wilted: '+stats.plantsWilted, cx, y);
+  fill(COL.healthLow); text('\uD83E\uDD40 Plants Wilted: '+stats.plantsWilted, cx, y);
 }
 
 // ============================================================
@@ -2175,6 +2308,17 @@ function initModeSelectButtons() {
 
 function drawModeSelect() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
+
+  // Subtle floating particle background
+  let t = millis() / 1000;
+  noStroke();
+  for (let i = 0; i < 6; i++) {
+    let px = CANVAS_W/2 + cos(t*0.2 + i*1.0) * 250;
+    let py = CANVAS_H/2 + sin(t*0.25 + i*0.9) * 160;
+    let r = 30 + sin(t*0.4 + i) * 10;
+    fill(COL.accent[0], COL.accent[1], COL.accent[2], 10 + sin(t+i)*5);
+    ellipse(px, py, r*2, r*2);
+  }
 
   textAlign(CENTER, CENTER);
   textStyle(BOLD); textSize(42);
