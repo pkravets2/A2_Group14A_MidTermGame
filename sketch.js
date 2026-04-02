@@ -92,8 +92,8 @@ const LEVELS = [
 // ============================================================
 // TITLE SCREEN CONSTANTS
 // ============================================================
-const TITLE_VIDEO_FILE = '../assets/title.mp4';
-const TITLE_FALLBACK_IMG = '../assets/title_bg.png';
+const TITLE_VIDEO_FILE = 'assets/title.mp4';
+const TITLE_FALLBACK_IMG = 'assets/title_bg.png';
 
 const TITLE_START_BTN = { x: 300, y: 595, w: 250, h: 95 };
 const TITLE_INSTR_BTN = { x: 580, y: 595, w: 280, h: 95 };
@@ -310,10 +310,10 @@ let imagesLoaded = false;
 // ============================================================
 function preload() {
   try {
-    plantGoodImg = loadImage('../assets/plant_good.png', () => {}, () => { plantGoodImg = null; });
-    plantOkayImg = loadImage('../assets/plant_okay.png', () => {}, () => { plantOkayImg = null; });
-    plantBadImg  = loadImage('../assets/plant_bad.png',  () => {}, () => { plantBadImg = null; });
-    plantDeadImg = loadImage('../assets/plant_dead.png', () => {}, () => { plantDeadImg = null; });
+    plantGoodImg = loadImage('assets/plant_good.png', () => {}, () => { plantGoodImg = null; });
+    plantOkayImg = loadImage('assets/plant_okay.png', () => {}, () => { plantOkayImg = null; });
+    plantBadImg  = loadImage('assets/plant_bad.png',  () => {}, () => { plantBadImg = null; });
+    plantDeadImg = loadImage('assets/plant_dead.png', () => {}, () => { plantDeadImg = null; });
   } catch (e) {
     console.warn('Plant images could not be loaded, using fallback rendering.', e);
   }
