@@ -46,7 +46,7 @@ const SURGE_JITTER_AMOUNT = 5;
 // Tension meter
 const TENSION_RISE_SURGE = 4;
 const TENSION_RISE_ALERTS = 0.7;
-const TENSION_DECAY = 2;
+const TENSION_DECAY = 1;
 const TENSION_OVERLOAD_RESET = 40;
 const BREATHE_TENSION_REDUCE = 12;    // Tension reduced per second while breathing
 const BREATHE_COOLDOWN = 5;           // Seconds between breathe uses
@@ -830,8 +830,8 @@ function updateTension(dt) {
   let activeAlerts = beds.filter(b => !b.isWilted && b.trueUrgency === 'critical').length;
   tensionMeter += activeAlerts * TENSION_RISE_ALERTS * dt;
 
-  // Natural decay (only when not surging and few critical plants, not breathing)
-  if (!surgeActive && activeAlerts < 2 && !isBreathing) {
+  // Natural decay — only kicks in above 20, so passive rise builds a baseline
+  if (!surgeActive && activeAlerts < 2 && !isBreathing && tensionMeter > 20) {
     tensionMeter -= TENSION_DECAY * dt;
   }
 
