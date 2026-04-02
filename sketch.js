@@ -1164,7 +1164,14 @@ function drawBed(bed) {
     if (img) {
       push(); imageMode(CORNER);
       if (bed.isWilted) tint(80,50,50,200);
-      image(img, bx+1, by+1, bw-2, bh-2);
+      let availW = bw - 2;
+      let availH = bh - 2;
+      let sc = min(availW / img.width, availH / img.height);
+      let drawW = img.width * sc;
+      let drawH = img.height * sc;
+      let drawX = bx + 1 + (availW - drawW) / 2;
+      let drawY = by + 1 + (availH - drawH) / 2;
+      image(img, drawX, drawY, drawW, drawH);
       noTint(); pop();
     }
   } else {
