@@ -44,10 +44,16 @@ const SURGE_INPUT_DELAY = 0.1;
 const SURGE_JITTER_AMOUNT = 5;
 
 // Tension meter
-const TENSION_RISE_SURGE = 12;
-const TENSION_RISE_ALERTS = 1.2;
-const TENSION_DECAY = 3;
-const TENSION_OVERLOAD_RESET = 70;
+const TENSION_RISE_SURGE = 8;
+const TENSION_RISE_ALERTS = 0.7;
+const TENSION_DECAY = 2;
+const TENSION_OVERLOAD_RESET = 40;
+const BREATHE_TENSION_REDUCE = 12;    // Tension reduced per second while breathing
+const BREATHE_COOLDOWN = 5;           // Seconds between breathe uses
+const BREATHE_DRAIN_REDUCTION = 0.25; // Drain multiplier while breathing (75% slower)
+const TENSION_DRAIN_BONUS_START = 50; // Tension level where drain penalty begins
+const TENSION_DRAIN_MAX_MULT = 1.5;   // Max drain multiplier at tension 100
+const TENSION_OVERLOAD_FREEZE = 2.0;  // Seconds of freeze when tension hits 100
 
 // Plant image thresholds
 const PLANT_IMG_GOOD_MIN = 67;
@@ -193,6 +199,9 @@ let waterCooldown = 0;
 let lightCooldown = 0;
 let airflowCooldown = 0;
 let actionLockTimer = 0;
+let isBreathing = false;
+let breatheCooldown = 0;
+let overwhelmTimer = 0;   // freeze timer when tension overloads
 
 // Input delay queue
 let inputQueue = [];
@@ -258,17 +267,20 @@ const TUTORIAL_STEPS = [
   { id: 'explain_wilted', text: 'If too many plants die, you lose!\nKeep an eye on the Wilted counter.',
     hint: '[ Click to continue ]', highlight: 'wilted', advanceOn: 'click' },
 
-  { id: 'surge_intro',    text: 'Sometimes a SURGE event will strike!\nLet\'s see what that looks like...',
+  { id: 'surge_intro',    text: 'Sometimes a SURGE will happen!\nEverything gets harder for a moment.\nLet\'s see what it looks like...',
     hint: '[ Click to trigger a surge ]', highlight: 'tension_meter', advanceOn: 'click' },
 
-  { id: 'surge_forced',   text: 'A surge is happening! Watch the screen shake\nand fake warnings appear on plants.',
+  { id: 'surge_forced',   text: 'A surge is happening!\nWatch the screen — things get intense!',
     hint: 'Wait for the surge to end...', highlight: 'board', advanceOn: 'surge_end', triggerSurge: true },
 
-  { id: 'surge_explain',  text: 'That was a surge! During surges, drains speed up,\nfake warnings appear, and controls lag slightly.\nStay calm and focus on the most critical plants.',
+  { id: 'surge_explain',  text: 'That was a surge! During surges,\nplants drain faster and tension goes up.\nJust focus on your most thirsty plants.',
     hint: '[ Click to continue ]', highlight: null, advanceOn: 'click' },
 
-  { id: 'tension_explain',text: 'The Tension meter rises during surges.\nIf it maxes out, your combo drops!\nKeep plants healthy to lower tension.',
+  { id: 'tension_explain',text: 'See the Tension meter? When it gets high,\nplants drain even faster! If it fills up\ncompletely, you freeze for a moment.',
     hint: '[ Click to continue ]', highlight: 'tension_meter', advanceOn: 'click' },
+
+  { id: 'breathe_explain',text: 'But don\'t worry! You can BREATHE.\nHold the Space bar to calm down.\nIt lowers tension AND slows all drain!',
+    hint: '[ Click to continue ]', highlight: null, advanceOn: 'click' },
 
   { id: 'ready',          text: 'You\'re ready! Keep all plants alive\nuntil the timer runs out. Good luck!',
     hint: '[ Click to start playing! ]', highlight: null, advanceOn: 'click' },
@@ -541,6 +553,13 @@ class PlantBed {
   update(dt) {
     if (this.isWilted) return;
     let drainMult = difficultyMult * levelConfig.drainMult;
+    // Breathing slows all drain
+    if (isBreathing) drainMult *= BREATHE_DRAIN_REDUCTION;
+    // High tension speeds up drain
+    if (tensionMeter > TENSION_DRAIN_BONUS_START) {
+      let tensionPenalty = map(tensionMeter, TENSION_DRAIN_BONUS_START, 100, 1.0, TENSION_DRAIN_MAX_MULT);
+      drainMult *= tensionPenalty;
+    }
     if (this.airflowActive) drainMult *= AIRFLOW_DRAIN_REDUCTION;
 
     this.water -= this.drainRateWater * drainMult * dt;
@@ -709,6 +728,9 @@ function initGame(lvlIndex) {
   surgeCooldownLeft = 0; surgesCompleted = 0; surgeVisualIntensity = 0;
   waterCooldown = 0; lightCooldown = 0; airflowCooldown = 0;
   actionLockTimer = 0;
+  isBreathing = false;
+  breatheCooldown = 0;
+  overwhelmTimer = 0;
   inputQueue = []; particles = [];
   stats = { surgesSurvived: 0, plantsWilted: 0, peakCombo: 0, totalRestores: 0 };
 }
@@ -770,12 +792,40 @@ function updateSurge(dt) {
 // ============================================================
 function updateTension(dt) {
   if (levelConfig.surgeMult <= 0) { tensionMeter = 0; return; }
+
+  // Overwhelm freeze — can't act, tension stays frozen
+  if (overwhelmTimer > 0) {
+    overwhelmTimer -= dt;
+    if (overwhelmTimer <= 0) {
+      tensionMeter = TENSION_OVERLOAD_RESET;
+    }
+    return;
+  }
+
+  // Breathing reduces tension
+  if (isBreathing) {
+    tensionMeter -= BREATHE_TENSION_REDUCE * dt;
+  }
+
+  // Surge raises tension
+  if (surgeActive) {
+    tensionMeter += TENSION_RISE_SURGE * dt;
+  }
+
+  // Critical plants slowly raise tension
   let activeAlerts = beds.filter(b => !b.isWilted && b.trueUrgency === 'critical').length;
-  tensionMeter += activeAlerts * TENSION_RISE_ALERTS * dt * 0.3;
-  if (!surgeActive && activeAlerts < 2) tensionMeter -= TENSION_DECAY * dt;
+  tensionMeter += activeAlerts * TENSION_RISE_ALERTS * dt;
+
+  // Natural decay (only when not surging and few critical plants)
+  if (!surgeActive && activeAlerts < 2 && !isBreathing) {
+    tensionMeter -= TENSION_DECAY * dt;
+  }
+
   tensionMeter = constrain(tensionMeter, 0, 100);
+
+  // Overload — freeze the player briefly
   if (tensionMeter >= 100) {
-    tensionMeter = TENSION_OVERLOAD_RESET;
+    overwhelmTimer = TENSION_OVERLOAD_FREEZE;
     comboMultiplier = max(1.0, comboMultiplier - 0.5);
   }
 }
@@ -808,6 +858,8 @@ function updateDifficulty() {
 // ============================================================
 function doAction(type) {
   if (actionLockTimer > 0) return;
+  if (overwhelmTimer > 0) return;
+  if (isBreathing) return;
   let bed = beds[selectedBed];
   if (!bed || bed.isWilted) return;
   if (type === 'water' && waterCooldown <= 0) {
@@ -1499,8 +1551,9 @@ function drawInstructionsOverlay() {
   // === MIDDLE SECTION: Key concepts ===
   let conceptsY = cardsY + cardH + 55;
   let conceptItems = [
-    { icon: '\u26A1', label: 'Surges', desc: 'Random disruptions \u2014 stay calm, they pass', col: COL.surge },
-    { icon: '\u2593', label: 'Tension', desc: 'Rises during surges. Don\'t let it max out', col: COL.tension },
+    { icon: '\u26A1', label: 'Surges', desc: 'Random disruptions \u2014 things drain faster', col: COL.surge },
+    { icon: '\u2593', label: 'Tension', desc: 'High tension = faster drain. Overload = brief freeze', col: COL.tension },
+    { icon: '\u{1F4A8}', label: 'Breathe', desc: 'Hold Space to calm down and slow everything', col: COL.water },
     { icon: '\u2605', label: 'Harmony', desc: 'Keep plants healthy for score bonus', col: COL.combo },
   ];
 
@@ -1589,6 +1642,32 @@ function drawGameplayBoard() {
   if (actionLockTimer > 0) {
     noStroke(); fill(COL.bg[0], COL.bg[1], COL.bg[2], 30);
     rect(boardX, boardY, boardW, boardH);
+  }
+
+  // Overwhelm freeze visual
+  if (overwhelmTimer > 0) {
+    fill(10, 5, 15, 140);
+    noStroke();
+    rect(0, 0, CANVAS_W, CANVAS_H);
+    textAlign(CENTER, CENTER); textStyle(BOLD);
+    textSize(32);
+    fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2], 200);
+    text('Overwhelmed...', boardX + boardW/2, CANVAS_H/2 - 20);
+    textSize(18); textStyle(NORMAL);
+    fill(COL.textSecondary);
+    text('Take a moment.', boardX + boardW/2, CANVAS_H/2 + 15);
+  }
+
+  // Breathing visual overlay
+  if (isBreathing) {
+    let breatheAlpha = 20 + sin(millis() / 500) * 10;
+    fill(80, 180, 220, breatheAlpha);
+    noStroke();
+    rect(0, 0, CANVAS_W, CANVAS_H);
+    // Calming pulse circle in center
+    let pulseSize = 60 + sin(millis() / 600) * 20;
+    fill(80, 180, 220, 25);
+    ellipse(boardX + boardW/2, CANVAS_H/2, pulseSize, pulseSize);
   }
 }
 
@@ -1825,12 +1904,13 @@ function drawPanel() {
       noStroke(); ellipse(px + 5, py + 7, 8, 8);
       fill(COL.surge[0], COL.surge[1], COL.surge[2], surgeGlow);
       textStyle(BOLD); text('  SURGE ACTIVE', px + 4, py); textStyle(NORMAL);
-    } else {
-      // Green glow dot
-      fill(COL.accent[0], COL.accent[1], COL.accent[2], 180);
+    } else if (isBreathing) {
+      let breatheGlow = 180 + sin(millis() / 400) * 75;
+      fill(80, 180, 220, breatheGlow);
       noStroke(); ellipse(px + 5, py + 7, 8, 8);
-      fill(COL.textSecondary); text('  System Stable', px + 4, py);
-    }
+      fill(80, 180, 220, breatheGlow);
+      textStyle(BOLD); text('  Breathing...', px + 4, py); textStyle(NORMAL);
+    } else { fill(COL.textSecondary); text('System Stable', px, py); }
     py += 28;
   } else {
     py += 10;
@@ -1884,7 +1964,7 @@ function drawPanel() {
   text(wiltWarning+'Wilted: '+wc+' / '+currentLoseThreshold+' max', px, CANVAS_H-36);
   textStyle(NORMAL);
   textSize(11); fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],140);
-  text('Esc/P=Pause  V=Effects  M=Mute', px, CANVAS_H-18);
+  text('Esc=Pause  Space=Breathe  M=Mute', px, CANVAS_H-18);
 }
 
 // ============================================================
@@ -1951,6 +2031,51 @@ function drawActionButtons(px, py, pw) {
       text(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
       textStyle(NORMAL);
     }
+  }
+
+  // Breathe button (visual indicator, activated by holding Space)
+  let breatheY = py + 3 * (btnH + gap) + gap;
+  let breatheAvail = breatheCooldown <= 0 && overwhelmTimer <= 0 && !isBreathing;
+
+  // Bottom shadow
+  noStroke();
+  fill(8, 10, 8, 60);
+  rect(px, breatheY + 2, btnW, btnH, 6);
+
+  if (isBreathing) {
+    // Active breathing state — calming blue
+    let breathePulse = 0.7 + sin(millis() / 500) * 0.3;
+    fill(40 * breathePulse, 100 * breathePulse, 130 * breathePulse);
+    stroke(80, 180, 220, 180);
+    strokeWeight(2);
+    rect(px, breatheY, btnW, btnH, 6);
+    noStroke();
+    fill(200, 230, 255);
+    textAlign(CENTER, CENTER); textSize(15); textStyle(BOLD);
+    text('Breathing...', px + btnW/2, breatheY + btnH/2);
+    textStyle(NORMAL);
+  } else if (!breatheAvail) {
+    // On cooldown
+    fill(42, 46, 44); stroke(55, 60, 55); strokeWeight(1);
+    rect(px, breatheY, btnW, btnH, 6); noStroke();
+    fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 80);
+    textAlign(CENTER, CENTER); textSize(15);
+    text('\u{1F4A8} Breathe [Space] ' + (breatheCooldown > 0 ? nf(breatheCooldown, 1, 0) + 's' : ''), px + btnW/2, breatheY + btnH/2);
+  } else {
+    // Available
+    let hov = mouseX >= px && mouseX <= px + btnW && mouseY >= breatheY && mouseY <= breatheY + btnH;
+    fill(hov ? [35, 70, 85] : [25, 55, 70]);
+    stroke(80, 180, 220, hov ? 180 : 100);
+    strokeWeight(1.5);
+    rect(px, breatheY, btnW, btnH, 6);
+    noStroke();
+    // Inner glow
+    fill(80, 180, 220, 40);
+    rect(px + 1, breatheY + 1, btnW - 2, 1, 1);
+    fill(COL.buttonText);
+    textAlign(CENTER, CENTER); textSize(15); textStyle(BOLD);
+    text('\u{1F4A8} Breathe  [Hold Space]', px + btnW/2, breatheY + btnH/2);
+    textStyle(NORMAL);
   }
 }
 
@@ -2583,6 +2708,8 @@ function updateGame(dt) {
   if (lightCooldown > 0) lightCooldown -= dt;
   if (airflowCooldown > 0) airflowCooldown -= dt;
   if (actionLockTimer > 0) actionLockTimer -= dt;
+  if (breatheCooldown > 0) breatheCooldown -= dt;
+  // Stop breathing if spacebar released (handled by keyReleased)
   processInputQueue(dt);
   for (let bed of beds) bed.update(dt);
   updateSurge(dt); updateTension(dt);
@@ -2680,6 +2807,15 @@ function keyPressed() {
         else gameState = STATE.PLAYING;
       }
       break;
+  }
+}
+
+function keyReleased() {
+  if (key === ' ') {
+    if (isBreathing) {
+      isBreathing = false;
+      breatheCooldown = BREATHE_COOLDOWN;
+    }
   }
 }
 
@@ -2813,6 +2949,9 @@ function handlePlayingInput() {
   if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) col = min(currentGridCols-1, col+1);
   selectedBed = row * currentGridCols + col;
 
+  if (key === ' ' && breatheCooldown <= 0 && overwhelmTimer <= 0) {
+    isBreathing = true;
+  }
   if (key === 'q' || key === 'Q') queueAction(() => doAction('water'));
   if (key === 'e' || key === 'E') queueAction(() => doAction('light'));
   if (key === 'r' || key === 'R') queueAction(() => doAction('airflow'));
