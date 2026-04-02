@@ -285,9 +285,12 @@ let countdownPhase = 0; // 0=3, 1=2, 2=1, 3=GO!, 4=done
 // ============================================================
 let soundMuted = false;
 let soundInitialized = false;
-let musicMuted = false;
+let audioMuted = false;
 let bgm = null;
 let bgmLoaded = false;
+let sfxLose = null;
+let sfxNextLevel = null;
+let sfxFinalComplete = null;
 
 const MUSIC_BTN = { x: CANVAS_W - 44, y: 6, w: 36, h: 36 };
 
@@ -300,23 +303,57 @@ function initBGM() {
     bgm = createAudio('assets/royalty_free_farm_music.mp3');
     bgm.loop();
     bgm.volume(0.3);
-    if (musicMuted) bgm.pause();
+    if (audioMuted) bgm.pause();
     bgmLoaded = true;
   } catch (e) {
     console.warn('BGM could not be loaded.', e);
     bgm = null;
     bgmLoaded = false;
   }
+  // Load sound effects
+  try {
+    sfxLose = createAudio('assets/you_lose.wav');
+    sfxLose.volume(0.5);
+  } catch (e) { sfxLose = null; }
+  try {
+    sfxNextLevel = createAudio('assets/next_level.wav');
+    sfxNextLevel.volume(0.5);
+  } catch (e) { sfxNextLevel = null; }
+  try {
+    sfxFinalComplete = createAudio('assets/final_level_complete.wav');
+    sfxFinalComplete.volume(0.5);
+  } catch (e) { sfxFinalComplete = null; }
 }
 
-function toggleMusic() {
-  musicMuted = !musicMuted;
+function toggleAudio() {
+  audioMuted = !audioMuted;
+  soundMuted = audioMuted;
   if (!bgm) return;
-  if (musicMuted) {
+  if (audioMuted) {
     try { bgm.pause(); } catch (e) {}
   } else {
     try { bgm.loop(); } catch (e) {}
   }
+}
+
+function pauseBGM() {
+  if (bgm && bgmLoaded) {
+    try { bgm.pause(); } catch (e) {}
+  }
+}
+
+function resumeBGM() {
+  if (bgm && bgmLoaded && !audioMuted) {
+    try { bgm.loop(); } catch (e) {}
+  }
+}
+
+function playSFX(sfx) {
+  if (!sfx || audioMuted) return;
+  try {
+    sfx.stop();
+    sfx.play();
+  } catch (e) {}
 }
 
 function drawMusicToggle() {
@@ -329,18 +366,18 @@ function drawMusicToggle() {
   rect(mx, my, mw, mh, 8);
 
   // Speaker icon
-  fill(musicMuted ? [180, 80, 80] : COL.accent);
+  fill(audioMuted ? [180, 80, 80] : COL.accent);
   textAlign(CENTER, CENTER);
   textSize(18);
   textStyle(NORMAL);
-  if (musicMuted) {
+  if (audioMuted) {
     text('\u{1F507}', mx + mw / 2, my + mh / 2);
   } else {
     text('\u{1F50A}', mx + mw / 2, my + mh / 2);
   }
 
   // Strikethrough line when muted
-  if (musicMuted) {
+  if (audioMuted) {
     stroke(220, 75, 75, 200);
     strokeWeight(2);
     line(mx + 6, my + 6, mx + mw - 6, my + mh - 6);
@@ -811,7 +848,8 @@ function queueAction(fn) {
 function checkEndConditions() {
   let wiltedCount = beds.filter(b => b.isWilted).length;
   if (wiltedCount >= currentLoseThreshold) {
-    playSoundLose();
+    pauseBGM();
+    playSFX(sfxLose);
     gameState = STATE.LOSE;
     hideTitleVideo();
     return;
@@ -820,10 +858,12 @@ function checkEndConditions() {
     // Survived the round
     if (currentLevel >= LEVELS.length - 1) {
       // Final level beaten
-      playSoundLevelComplete();
+      pauseBGM();
+      playSFX(sfxFinalComplete);
       gameState = STATE.CONGRATS;
     } else {
-      playSoundLevelComplete();
+      pauseBGM();
+      playSFX(sfxNextLevel);
       gameState = STATE.LEVEL_COMPLETE;
     }
     hideTitleVideo();
@@ -1222,6 +1262,7 @@ function startCountdown() {
   gameState = STATE.COUNTDOWN;
   countdownTimer = 0;
   countdownPhase = 0;
+  resumeBGM();
 }
 
 function updateCountdown(dt) {
@@ -2559,7 +2600,7 @@ function keyPressed() {
   // Global toggles
   if (key === 'v' || key === 'V') { reducedEffects = !reducedEffects; return; }
   if (key === 'h' || key === 'H') { debugShowHitboxes = !debugShowHitboxes; return; }
-  if (key === 'm' || key === 'M') { soundMuted = !soundMuted; toggleMusic(); return; }
+  if (key === 'm' || key === 'M') { toggleAudio(); return; }
 
   switch (gameState) {
     case STATE.TITLE:
@@ -2645,6 +2686,7 @@ function keyPressed() {
 function startGameFromTitle() {
   initModeSelectButtons();
   gameState = STATE.MODE_SELECT;
+  resumeBGM();
 }
 
 // ============================================================
@@ -2783,7 +2825,7 @@ function handlePlayingInput() {
 function mousePressed() {
   // Music toggle icon — works on every screen
   if (isInRect(mouseX, mouseY, MUSIC_BTN)) {
-    toggleMusic();
+    toggleAudio();
     return;
   }
 
