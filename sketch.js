@@ -145,6 +145,7 @@ const COL = {
 // ============================================================
 const STATE = {
   TITLE: 'title',
+  MODE_SELECT: 'mode_select',
   TUTORIAL: 'tutorial',
   COUNTDOWN: 'countdown',
   PLAYING: 'playing',
@@ -220,15 +221,57 @@ let tutorialActive = false;
 let tutorialStep = 0;
 let tutorialDrainEnabled = false;
 let tutorialCompleted = false;
+let tutorialDrainTimer = 0;
+let tutorialSurgeActive = false;
 
 const TUTORIAL_STEPS = [
-  { id: 'welcome',  text: 'Welcome to Garden Circuit! Keep these plants alive.', hint: 'Click to continue', highlight: 'board', advanceOn: 'click' },
-  { id: 'bars',     text: 'Each plant has Health, Water, and Light. Watch them drain.', hint: 'Click to continue', highlight: 'beds', advanceOn: 'click', enableDrain: true },
-  { id: 'select',   text: 'Click a plant or use WASD to select it.', hint: 'Select a plant', highlight: 'beds', advanceOn: 'select' },
-  { id: 'water',    text: 'Press Q or click Water to hydrate the selected plant.', hint: 'Press Q to water', highlight: 'water_btn', advanceOn: 'water' },
-  { id: 'light',    text: 'Press E or click Light to brighten the selected plant.', hint: 'Press E for light', highlight: 'light_btn', advanceOn: 'light' },
-  { id: 'airflow',  text: 'Press R for Airflow \u2014 slows drain temporarily. Has a cooldown.', hint: 'Press R for airflow', highlight: 'airflow_btn', advanceOn: 'airflow' },
-  { id: 'ready',    text: 'Keep plants alive until time runs out. Good luck!', hint: 'Click to continue', highlight: null, advanceOn: 'click' },
+  { id: 'welcome',        text: 'Welcome to Garden Circuit!\nLet\'s learn how to play, one step at a time.',
+    hint: '[ Click anywhere to continue ]', highlight: 'board', advanceOn: 'click' },
+
+  { id: 'explain_hp',     text: 'Each plant has a Health bar (HP).\nIf HP reaches zero, the plant dies!',
+    hint: '[ Click to continue ]', highlight: 'hp_bars', advanceOn: 'click' },
+
+  { id: 'explain_water',  text: 'Plants need water!\nSee the blue Water bar? It drains over time.',
+    hint: '[ Click to continue ]', highlight: 'water_bars', advanceOn: 'click' },
+
+  { id: 'explain_light',  text: 'Plants also need light!\nThe yellow Light bar drains over time too.',
+    hint: '[ Click to continue ]', highlight: 'light_bars', advanceOn: 'click' },
+
+  { id: 'watch_drain',    text: 'Watch — the bars are draining!\nYou need to act fast to keep your plants alive.',
+    hint: '[ Watch the bars, then click to continue ]', highlight: 'beds', advanceOn: 'click', enableDrain: true, drainDuration: 3 },
+
+  { id: 'select_plant',   text: 'Click on a plant to select it.\nYou can also use WASD or the arrow keys.',
+    hint: 'Select a plant to continue', highlight: 'beds', advanceOn: 'select' },
+
+  { id: 'water_action',   text: 'Great! Now press Q or click the\nWater button to water your plant.',
+    hint: 'Press Q or click the Water button', highlight: 'water_btn', advanceOn: 'water' },
+
+  { id: 'light_action',   text: 'Nice! Now press E or click the\nLight button to give your plant light.',
+    hint: 'Press E or click the Light button', highlight: 'light_btn', advanceOn: 'light' },
+
+  { id: 'airflow_action', text: 'Press R or click Airflow to slow down\ndrain for a few seconds. It has a cooldown!',
+    hint: 'Press R or click the Airflow button', highlight: 'airflow_btn', advanceOn: 'airflow' },
+
+  { id: 'explain_panel',  text: 'This side panel shows your Level,\nTimer, Score, and Combo meter.',
+    hint: '[ Click to continue ]', highlight: 'panel', advanceOn: 'click' },
+
+  { id: 'explain_wilted', text: 'If too many plants die, you lose!\nKeep an eye on the Wilted counter.',
+    hint: '[ Click to continue ]', highlight: 'wilted', advanceOn: 'click' },
+
+  { id: 'surge_intro',    text: 'Sometimes a SURGE event will strike!\nLet\'s see what that looks like...',
+    hint: '[ Click to trigger a surge ]', highlight: 'tension_meter', advanceOn: 'click' },
+
+  { id: 'surge_forced',   text: 'A surge is happening! Watch the screen shake\nand fake warnings appear on plants.',
+    hint: 'Wait for the surge to end...', highlight: 'board', advanceOn: 'surge_end', triggerSurge: true },
+
+  { id: 'surge_explain',  text: 'That was a surge! During surges, drains speed up,\nfake warnings appear, and controls lag slightly.\nStay calm and focus on the most critical plants.',
+    hint: '[ Click to continue ]', highlight: null, advanceOn: 'click' },
+
+  { id: 'tension_explain',text: 'The Tension meter rises during surges.\nIf it maxes out, your combo drops!\nKeep plants healthy to lower tension.',
+    hint: '[ Click to continue ]', highlight: 'tension_meter', advanceOn: 'click' },
+
+  { id: 'ready',          text: 'You\'re ready! Keep all plants alive\nuntil the timer runs out. Good luck!',
+    hint: '[ Click to start playing! ]', highlight: null, advanceOn: 'click' },
 ];
 
 // ============================================================
@@ -748,22 +791,57 @@ function startTutorial() {
   tutorialActive = true;
   tutorialStep = 0;
   tutorialDrainEnabled = false;
+  tutorialDrainTimer = 0;
+  tutorialSurgeActive = false;
+  // Temporarily enable surge display for tutorial
+  levelConfig = Object.assign({}, LEVELS[0], { surgeMult: 0.5 });
 }
 
 function advanceTutorial() {
+  // Stop drain from previous step
+  tutorialDrainEnabled = false;
+  tutorialDrainTimer = 0;
+
   tutorialStep++;
   if (tutorialStep >= TUTORIAL_STEPS.length) {
     endTutorial();
     return;
   }
+
   let step = TUTORIAL_STEPS[tutorialStep];
-  if (step.enableDrain) tutorialDrainEnabled = true;
+  if (step.enableDrain) {
+    tutorialDrainEnabled = true;
+    tutorialDrainTimer = step.drainDuration || 3;
+  }
+  if (step.triggerSurge) {
+    tutorialSurgeActive = true;
+    surgeActive = true;
+    surgeTimer = 4;
+    surgeVisualIntensity = 1.0;
+    playSoundSurgeStart();
+    // Set false alerts on available plants
+    let available = beds.filter(b => !b.isWilted && b.trueUrgency !== 'critical');
+    shuffle(available, true);
+    let count = min(FALSE_ALERT_COUNT, available.length);
+    for (let i = 0; i < count; i++) available[i].hasFalseAlert = true;
+  }
 }
 
 function endTutorial() {
   tutorialActive = false;
   tutorialCompleted = true;
   tutorialDrainEnabled = false;
+  tutorialDrainTimer = 0;
+  tutorialSurgeActive = false;
+  surgeActive = false;
+  surgeVisualIntensity = 0;
+  tensionMeter = 0;
+  for (let b of beds) b.hasFalseAlert = false;
+  // Reset to Level 1 config (no surges)
+  levelConfig = LEVELS[0];
+  // Re-initialize for actual gameplay
+  actionBtns = [];
+  initGame(0);
   startCountdown();
 }
 
@@ -771,79 +849,204 @@ function drawTutorial() {
   // Draw the gameplay board underneath
   drawGameplayBoard();
 
-  // Dim overlay
-  fill(10, 14, 24, 110);
-  noStroke();
-  rect(0, 0, CANVAS_W, CANVAS_H);
-
   let step = TUTORIAL_STEPS[tutorialStep];
 
+  // Don't dim during surge demo — let it be visible
+  if (!tutorialSurgeActive) {
+    // Dim overlay
+    fill(10, 14, 24, 140);
+    noStroke();
+    rect(0, 0, CANVAS_W, CANVAS_H);
+  } else {
+    // Lighter dim during surge so effects are visible
+    fill(10, 14, 24, 60);
+    noStroke();
+    rect(0, 0, CANVAS_W, CANVAS_H);
+  }
+
   // Highlight specific areas by redrawing them on top
-  if (step.highlight === 'board' || step.highlight === 'beds') {
-    // Redraw beds on top at full brightness
+  drawTutorialHighlight(step);
+
+  // Dialog box at bottom center — much larger
+  let dlgW = 620, dlgH = 140;
+  let dlgX = (CANVAS_W - PANEL_WIDTH) / 2 - dlgW / 2 + 10;
+  let dlgY = CANVAS_H - 170;
+
+  // Background with thicker border
+  fill(12, 16, 30, 235);
+  stroke(COL.accent[0], COL.accent[1], COL.accent[2], 180);
+  strokeWeight(3);
+  rect(dlgX, dlgY, dlgW, dlgH, 12);
+  noStroke();
+
+  // Main text — much larger
+  fill(COL.textPrimary);
+  textAlign(CENTER, CENTER);
+  textSize(22);
+  textStyle(BOLD);
+  let textY = dlgY + dlgH / 2 - 18;
+  // Handle multiline text
+  let lines = step.text.split('\n');
+  let lineHeight = 28;
+  let totalTextH = lines.length * lineHeight;
+  let startTextY = dlgY + dlgH / 2 - totalTextH / 2 - 8;
+  for (let i = 0; i < lines.length; i++) {
+    text(lines[i], dlgX + dlgW / 2, startTextY + i * lineHeight);
+  }
+  textStyle(NORMAL);
+
+  // Hint text — larger and more visible with pulsing
+  let hintAlpha = 160 + sin(millis() / 400) * 80;
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], hintAlpha);
+  textSize(16);
+  textStyle(BOLD);
+  text(step.hint, dlgX + dlgW / 2, dlgY + dlgH - 24);
+  textStyle(NORMAL);
+
+  // Pulsing down arrow for click-to-continue steps
+  if (step.advanceOn === 'click') {
+    let arrowY = dlgY + dlgH + 8 + sin(millis() / 300) * 5;
+    fill(COL.accent[0], COL.accent[1], COL.accent[2], hintAlpha);
+    textSize(20);
+    textAlign(CENTER, CENTER);
+    text('\u25BC', dlgX + dlgW / 2, arrowY);
+  }
+
+  // Step indicator dots
+  let dotY = dlgY + dlgH + 28;
+  let dotSpacing = 14;
+  let totalDotsW = TUTORIAL_STEPS.length * dotSpacing;
+  for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
+    let dotX = dlgX + dlgW / 2 - totalDotsW / 2 + i * dotSpacing + dotSpacing / 2;
+    if (i < tutorialStep) fill(COL.accent[0], COL.accent[1], COL.accent[2], 180);
+    else if (i === tutorialStep) fill(COL.accent[0], COL.accent[1], COL.accent[2], 200 + sin(millis() / 300) * 55);
+    else fill(60, 70, 60);
+    noStroke();
+    ellipse(dotX, dotY, 7, 7);
+  }
+}
+
+function drawTutorialHighlight(step) {
+  if (!step.highlight) return;
+
+  let hl = step.highlight;
+  let pulseAlpha = 150 + sin(millis() / 250) * 80;
+
+  if (hl === 'board' || hl === 'beds') {
     for (let bed of beds) {
       push();
       drawBed(bed);
-      // Pulsing border
       noFill();
-      stroke(COL.accent[0], COL.accent[1], COL.accent[2], 120 + sin(millis() / 300) * 60);
-      strokeWeight(2);
-      rect(bed.x - 2, bed.y - 2, bed.w + 4, bed.h + 4, 5);
+      stroke(COL.accent[0], COL.accent[1], COL.accent[2], pulseAlpha);
+      strokeWeight(4);
+      rect(bed.x - 3, bed.y - 3, bed.w + 6, bed.h + 6, 6);
       pop();
     }
   }
 
-  if (step.highlight === 'water_btn' || step.highlight === 'light_btn' || step.highlight === 'airflow_btn') {
-    // Redraw the panel actions area
-    let btnIndex = step.highlight === 'water_btn' ? 0 : step.highlight === 'light_btn' ? 1 : 2;
+  if (hl === 'hp_bars') {
+    for (let bed of beds) {
+      push();
+      drawBed(bed);
+      // Highlight HP bar area specifically
+      let barH = 6, barW = bed.w - 16, barX = bed.x + 8, labelH = 10, barGap = 4;
+      let bottomPad = 6;
+      let totalBarArea = 3 * (barH + labelH + barGap);
+      let barAreaTop = bed.y + bed.h - bottomPad - totalBarArea;
+      noFill();
+      stroke(COL.health[0], COL.health[1], COL.health[2], pulseAlpha);
+      strokeWeight(3);
+      rect(barX - 4, barAreaTop - 2, barW + 8, labelH + barH + 4, 4);
+      pop();
+    }
+  }
+
+  if (hl === 'water_bars') {
+    for (let bed of beds) {
+      push();
+      drawBed(bed);
+      let barH = 6, barW = bed.w - 16, barX = bed.x + 8, labelH = 10, barGap = 4;
+      let bottomPad = 6;
+      let totalBarArea = 3 * (barH + labelH + barGap);
+      let barAreaTop = bed.y + bed.h - bottomPad - totalBarArea;
+      let waterBarY = barAreaTop + (labelH + barH + barGap);
+      noFill();
+      stroke(COL.water[0], COL.water[1], COL.water[2], pulseAlpha);
+      strokeWeight(3);
+      rect(barX - 4, waterBarY - 2, barW + 8, labelH + barH + 4, 4);
+      pop();
+    }
+  }
+
+  if (hl === 'light_bars') {
+    for (let bed of beds) {
+      push();
+      drawBed(bed);
+      let barH = 6, barW = bed.w - 16, barX = bed.x + 8, labelH = 10, barGap = 4;
+      let bottomPad = 6;
+      let totalBarArea = 3 * (barH + labelH + barGap);
+      let barAreaTop = bed.y + bed.h - bottomPad - totalBarArea;
+      let lightBarY = barAreaTop + 2 * (labelH + barH + barGap);
+      noFill();
+      stroke(COL.light[0], COL.light[1], COL.light[2], pulseAlpha);
+      strokeWeight(3);
+      rect(barX - 4, lightBarY - 2, barW + 8, labelH + barH + 4, 4);
+      pop();
+    }
+  }
+
+  if (hl === 'water_btn' || hl === 'light_btn' || hl === 'airflow_btn') {
+    let btnIndex = hl === 'water_btn' ? 0 : hl === 'light_btn' ? 1 : 2;
     if (actionBtns.length > btnIndex) {
       let btn = actionBtns[btnIndex];
       push();
-      // Clear area behind button
       fill(COL.panelBg);
       noStroke();
-      rect(btn.x - 4, btn.y - 4, btn.w + 8, btn.h + 8, 8);
+      rect(btn.x - 6, btn.y - 6, btn.w + 12, btn.h + 12, 10);
       btn.draw();
-      // Pulse
       noFill();
-      stroke(COL.accent[0], COL.accent[1], COL.accent[2], 150 + sin(millis() / 250) * 80);
-      strokeWeight(2);
-      rect(btn.x - 2, btn.y - 2, btn.w + 4, btn.h + 4, 8);
+      stroke(COL.accent[0], COL.accent[1], COL.accent[2], pulseAlpha);
+      strokeWeight(4);
+      rect(btn.x - 3, btn.y - 3, btn.w + 6, btn.h + 6, 8);
       pop();
     }
   }
 
-  // Dialog box at bottom center
-  let dlgW = 560, dlgH = 90;
-  let dlgX = (CANVAS_W - PANEL_WIDTH) / 2 - dlgW / 2 + 10;
-  let dlgY = CANVAS_H - 130;
+  if (hl === 'panel') {
+    push();
+    // Redraw the panel on top
+    drawPanel();
+    noFill();
+    stroke(COL.accent[0], COL.accent[1], COL.accent[2], pulseAlpha);
+    strokeWeight(4);
+    rect(panelX + 2, 2, PANEL_WIDTH - 4, CANVAS_H - 4, 4);
+    pop();
+  }
 
-  // Background
-  fill(15, 20, 35, 220);
-  stroke(COL.accent[0], COL.accent[1], COL.accent[2], 150);
-  strokeWeight(2);
-  rect(dlgX, dlgY, dlgW, dlgH, 10);
-  noStroke();
+  if (hl === 'wilted') {
+    push();
+    drawPanel();
+    // Highlight wilted counter area at bottom of panel
+    let px = panelX + 20;
+    noFill();
+    stroke(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], pulseAlpha);
+    strokeWeight(3);
+    rect(px - 6, CANVAS_H - 52, PANEL_WIDTH - 40 + 12, 28, 6);
+    pop();
+  }
 
-  // Main text
-  fill(COL.textPrimary);
-  textAlign(CENTER, CENTER);
-  textSize(17);
-  textStyle(NORMAL);
-  text(step.text, dlgX + dlgW / 2, dlgY + dlgH / 2 - 12);
-
-  // Hint text
-  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 150);
-  textSize(12);
-  text(step.hint, dlgX + dlgW / 2, dlgY + dlgH / 2 + 18);
-
-  // Step indicator dots
-  let dotY = dlgY + dlgH + 12;
-  for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
-    let dotX = dlgX + dlgW / 2 - (TUTORIAL_STEPS.length * 12) / 2 + i * 12 + 6;
-    fill(i === tutorialStep ? COL.accent : [60, 70, 60]);
-    noStroke();
-    ellipse(dotX, dotY, 6, 6);
+  if (hl === 'tension_meter') {
+    push();
+    drawPanel();
+    // Highlight tension meter area — approximate position in panel
+    let px = panelX + 20, pw = PANEL_WIDTH - 40;
+    // Tension meter is after combo bar, approximate y position
+    let tensionY = 220;
+    noFill();
+    stroke(COL.tension[0], COL.tension[1], COL.tension[2], pulseAlpha);
+    strokeWeight(3);
+    rect(px - 6, tensionY - 6, pw + 12, 70, 6);
+    pop();
   }
 }
 
@@ -1051,7 +1254,6 @@ function drawInstructionsOverlay() {
   let conceptItems = [
     { icon: '\u26A1', label: 'Surges', desc: 'Random disruptions \u2014 stay calm, they pass', col: COL.surge },
     { icon: '\u2593', label: 'Tension', desc: 'Rises during surges. Don\'t let it max out', col: COL.tension },
-    { icon: '\u25C7', label: 'Uncertain Zones', desc: 'Risky to tend, costly to ignore', col: [180, 160, 220] },
     { icon: '\u2605', label: 'Harmony', desc: 'Keep plants healthy for score bonus', col: COL.combo },
   ];
 
@@ -1432,8 +1634,12 @@ function initPauseButtons() {
     'Skip Tutorial', () => {
       tutorialActive = false;
       tutorialCompleted = true;
+      tutorialSurgeActive = false;
+      surgeActive = false;
+      surgeVisualIntensity = 0;
+      for (let b of beds) b.hasFalseAlert = false;
       actionBtns = [];
-      initGame(0);
+      initGame(1);
       startCountdown();
     }, 'pause_skip_tutorial'));
 
@@ -1568,6 +1774,7 @@ function setup() {
   initGame(0);
   initEndButtons();
   initPauseButtons();
+  initModeSelectButtons();
 }
 
 // ============================================================
@@ -1614,10 +1821,8 @@ function initEndButtons() {
   congratsButtons = [];
   congratsButtons.push(new Button(cx - btnW/2, CANVAS_H - 120, btnW, btnH, 'Play Again', () => {
     actionBtns = [];
-    tutorialCompleted = false;
-    initGame(0);
-    startTutorial();
-    gameState = STATE.TUTORIAL;
+    initModeSelectButtons();
+    gameState = STATE.MODE_SELECT;
     hideTitleVideo();
   }, 'cg_restart'));
 
@@ -1641,24 +1846,65 @@ function draw() {
       if (showInstructionsOverlay) drawInstructionsOverlay();
       break;
 
-    case STATE.TUTORIAL:
-      // Update drain if enabled in current step
+    case STATE.MODE_SELECT:
+      drawModeSelect();
+      break;
+
+    case STATE.TUTORIAL: {
+      let step = TUTORIAL_STEPS[tutorialStep];
+
+      // Always tick cooldowns so actions work immediately
+      if (waterCooldown > 0) waterCooldown -= dt;
+      if (lightCooldown > 0) lightCooldown -= dt;
+      if (airflowCooldown > 0) airflowCooldown -= dt;
+      if (actionLockTimer > 0) actionLockTimer -= dt;
+      updateParticles(dt);
+
+      // Drain only during drain-enabled steps
       if (tutorialDrainEnabled) {
-        // Minimal update — drain only, no surges, no end conditions, keep plants alive
-        if (waterCooldown > 0) waterCooldown -= dt;
-        if (lightCooldown > 0) lightCooldown -= dt;
-        if (airflowCooldown > 0) airflowCooldown -= dt;
-        if (actionLockTimer > 0) actionLockTimer -= dt;
         for (let bed of beds) {
           bed.update(dt);
-          // Prevent death during tutorial
           bed.health = max(bed.health, 15);
           bed.isWilted = false;
         }
-        updateParticles(dt);
+        // Auto-stop drain after timer expires (but keep step open for click)
+        if (step.drainDuration) {
+          tutorialDrainTimer -= dt;
+          if (tutorialDrainTimer <= 0) tutorialDrainEnabled = false;
+        }
       }
+
+      // Surge demo step: run surge update, auto-advance when done
+      if (tutorialSurgeActive) {
+        surgeTimer -= dt;
+        tensionMeter += TENSION_RISE_SURGE * dt;
+        tensionMeter = constrain(tensionMeter, 0, 80);
+        if (!reducedEffects) {
+          surgeJitterX = random(-SURGE_JITTER_AMOUNT, SURGE_JITTER_AMOUNT);
+          surgeJitterY = random(-SURGE_JITTER_AMOUNT, SURGE_JITTER_AMOUNT);
+        }
+        surgeVisualIntensity = lerp(surgeVisualIntensity, 1, 0.1);
+        // Drain plants during surge for realism
+        for (let bed of beds) {
+          bed.update(dt);
+          bed.health = max(bed.health, 15);
+          bed.isWilted = false;
+        }
+        if (surgeTimer <= 0) {
+          surgeActive = false;
+          tutorialSurgeActive = false;
+          surgeVisualIntensity = 0;
+          surgeJitterX = 0;
+          surgeJitterY = 0;
+          for (let b of beds) b.hasFalseAlert = false;
+          playSoundSurgeEnd();
+          advanceTutorial();
+        }
+      }
+
       drawTutorial();
       break;
+    }
 
     case STATE.COUNTDOWN:
       updateCountdown(dt);
@@ -1732,6 +1978,13 @@ function keyPressed() {
       if (key === 'i' || key === 'I') showInstructionsOverlay = true;
       break;
 
+    case STATE.MODE_SELECT:
+      if (keyCode === ESCAPE) {
+        gameState = STATE.TITLE;
+        showTitleVideo();
+      }
+      break;
+
     case STATE.TUTORIAL:
       if (keyCode === ESCAPE) { prevState = STATE.TUTORIAL; gameState = STATE.PAUSED; return; }
       handleTutorialInput();
@@ -1762,8 +2015,10 @@ function keyPressed() {
 
     case STATE.CONGRATS:
       if (keyCode === ENTER || key === ' ') {
-        actionBtns = []; tutorialCompleted = false;
-        initGame(0); startTutorial(); gameState = STATE.TUTORIAL; hideTitleVideo();
+        actionBtns = [];
+        initModeSelectButtons();
+        gameState = STATE.MODE_SELECT;
+        hideTitleVideo();
       }
       if (keyCode === ESCAPE) {
         actionBtns = []; tutorialCompleted = false;
@@ -1791,37 +2046,89 @@ function keyPressed() {
 }
 
 function startGameFromTitle() {
-  hideTitleVideo();
-  actionBtns = [];
-  initGame(0);
-  if (!tutorialCompleted) {
-    startTutorial();
-    gameState = STATE.TUTORIAL;
-  } else {
-    startCountdown();
+  initModeSelectButtons();
+  gameState = STATE.MODE_SELECT;
+}
+
+// ============================================================
+// MODE SELECT SCREEN
+// ============================================================
+let modeSelectButtons = [];
+
+function initModeSelectButtons() {
+  modeSelectButtons = [];
+  let cx = CANVAS_W / 2;
+  let btnW = 280, btnH = 60, gap = 24;
+  let startY = CANVAS_H / 2 - 20;
+
+  modeSelectButtons.push(new Button(cx - btnW/2, startY, btnW, btnH,
+    'Tutorial', () => {
+      hideTitleVideo();
+      actionBtns = [];
+      initGame(0);
+      startTutorial();
+      gameState = STATE.TUTORIAL;
+    }, 'mode_tutorial'));
+
+  modeSelectButtons.push(new Button(cx - btnW/2, startY + btnH + gap, btnW, btnH,
+    'Play Game', () => {
+      hideTitleVideo();
+      actionBtns = [];
+      tutorialCompleted = true;
+      initGame(1);
+      startCountdown();
+    }, 'mode_play'));
+}
+
+function drawModeSelect() {
+  background(COL.bg[0], COL.bg[1], COL.bg[2]);
+
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD); textSize(42);
+  fill(COL.accent[0], COL.accent[1], COL.accent[2]);
+  text('Garden Circuit', CANVAS_W / 2, CANVAS_H / 2 - 140);
+
+  textStyle(NORMAL); textSize(18);
+  fill(COL.textSecondary);
+  text('Choose how to start:', CANVAS_W / 2, CANVAS_H / 2 - 80);
+
+  for (let btn of modeSelectButtons) {
+    btn.checkHover(mouseX, mouseY);
+    btn.draw();
   }
+
+  // Subtitle hints under buttons
+  textSize(13); fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 140);
+  let btnY1 = CANVAS_H / 2 - 20;
+  text('Learn every mechanic step by step', CANVAS_W / 2, btnY1 + 70);
+  text('Jump straight into Level 2', CANVAS_W / 2, btnY1 + 60 + 24 + 70);
 }
 
 function handleTutorialInput() {
   let step = TUTORIAL_STEPS[tutorialStep];
 
-  // Movement keys work during tutorial
-  let col = selectedBed % currentGridCols;
-  let row = floor(selectedBed / currentGridCols);
-  let prevSelected = selectedBed;
+  // During surge demo, block all input — wait for auto-advance
+  if (tutorialSurgeActive) return;
 
-  if (key === 'w' || key === 'W' || keyCode === UP_ARROW) row = max(0, row-1);
-  if (key === 's' || key === 'S' || keyCode === DOWN_ARROW) row = min(currentGridRows-1, row+1);
-  if (key === 'a' || key === 'A' || keyCode === LEFT_ARROW) col = max(0, col-1);
-  if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) col = min(currentGridCols-1, col+1);
-  selectedBed = row * currentGridCols + col;
+  // Movement keys always work for selection steps
+  if (step.advanceOn === 'select' || step.advanceOn === 'water' || step.advanceOn === 'light' || step.advanceOn === 'airflow') {
+    let col = selectedBed % currentGridCols;
+    let row = floor(selectedBed / currentGridCols);
+    let prevSelected = selectedBed;
 
-  if (selectedBed !== prevSelected && step.advanceOn === 'select') advanceTutorial();
+    if (key === 'w' || key === 'W' || keyCode === UP_ARROW) row = max(0, row - 1);
+    if (key === 's' || key === 'S' || keyCode === DOWN_ARROW) row = min(currentGridRows - 1, row + 1);
+    if (key === 'a' || key === 'A' || keyCode === LEFT_ARROW) col = max(0, col - 1);
+    if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) col = min(currentGridCols - 1, col + 1);
+    selectedBed = row * currentGridCols + col;
 
-  // Action keys
-  if (key === 'q' || key === 'Q') doAction('water');
-  if (key === 'e' || key === 'E') doAction('light');
-  if (key === 'r' || key === 'R') doAction('airflow');
+    if (selectedBed !== prevSelected && step.advanceOn === 'select') advanceTutorial();
+  }
+
+  // Action keys — only respond to the action the current step requires
+  if (step.advanceOn === 'water' && (key === 'q' || key === 'Q')) doAction('water');
+  if (step.advanceOn === 'light' && (key === 'e' || key === 'E')) doAction('light');
+  if (step.advanceOn === 'airflow' && (key === 'r' || key === 'R')) doAction('airflow');
 }
 
 function handlePlayingInput() {
@@ -1860,17 +2167,31 @@ function mousePressed() {
       }
       break;
 
+    case STATE.MODE_SELECT:
+      for (let btn of modeSelectButtons) { if (btn.checkClick(mouseX, mouseY)) return; }
+      break;
+
     case STATE.TUTORIAL: {
       let step = TUTORIAL_STEPS[tutorialStep];
-      // Check action button clicks
-      for (let btn of actionBtns) { if (btn.checkClick(mouseX, mouseY)) return; }
-      // Bed selection
-      let idx = getBedAtMouse(mouseX, mouseY);
-      if (idx >= 0) {
-        let prev = selectedBed;
-        selectedBed = idx;
-        if (prev !== selectedBed && step.advanceOn === 'select') advanceTutorial();
+
+      // During surge demo, block input
+      if (tutorialSurgeActive) return;
+
+      // Check action button clicks — only for the current step's required action
+      if (step.advanceOn === 'water' || step.advanceOn === 'light' || step.advanceOn === 'airflow') {
+        for (let btn of actionBtns) { if (btn.checkClick(mouseX, mouseY)) return; }
       }
+
+      // Bed selection
+      if (step.advanceOn === 'select' || step.advanceOn === 'water' || step.advanceOn === 'light' || step.advanceOn === 'airflow') {
+        let idx = getBedAtMouse(mouseX, mouseY);
+        if (idx >= 0) {
+          let prev = selectedBed;
+          selectedBed = idx;
+          if (prev !== selectedBed && step.advanceOn === 'select') advanceTutorial();
+        }
+      }
+
       // Click-to-advance steps
       if (step.advanceOn === 'click') advanceTutorial();
       break;
