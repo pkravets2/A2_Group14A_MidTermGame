@@ -422,9 +422,9 @@ function playTone(freq, duration, vol, type) {
   } catch(e) {}
 }
 
-function playSoundWater() { playTone(440, 100, 0.04); }
-function playSoundLight() { playTone(650, 100, 0.04); }
-function playSoundAirflow() { playTone(200, 150, 0.03); }
+function playSoundWater() {}
+function playSoundLight() {}
+function playSoundAirflow() {}
 function playSoundSurgeStart() { playTone(160, 200, 0.06); }
 function playSoundSurgeEnd() { playTone(500, 100, 0.04); }
 function playSoundCountdownTick() { playTone(300, 80, 0.04); }
