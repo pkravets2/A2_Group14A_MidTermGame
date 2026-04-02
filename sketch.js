@@ -1096,15 +1096,14 @@ function drawTutorial() {
     arrowTargetX = panelX;
     arrowTargetY = 255;
   } else if (hl === 'breathe_btn') {
-    // Breathe button is below the 3 action buttons on the panel
+    // Breathe button — use tracked Y from drawActionButtons
     dlgX = 30;
-    // Approximate breathe button Y position (below 3 action btns)
-    let approxBreatheY = CANVAS_H - 220;
-    dlgY = approxBreatheY - dlgH / 2;
+    let bBtnY = lastBreatheButtonY > 0 ? lastBreatheButtonY : CANVAS_H - 120;
+    dlgY = bBtnY - dlgH / 2 + 19;
     dlgY = constrain(dlgY, 20, CANVAS_H - dlgH - 60);
     arrowDir = 'right';
     arrowTargetX = panelX;
-    arrowTargetY = approxBreatheY;
+    arrowTargetY = bBtnY + 19;
   } else if (hl === 'water_btn' || hl === 'light_btn' || hl === 'airflow_btn') {
     // Action buttons are on right panel — put dialog on left
     let btnIndex = hl === 'water_btn' ? 0 : hl === 'light_btn' ? 1 : 2;
@@ -1339,16 +1338,13 @@ function drawTutorialHighlight(step) {
   if (hl === 'breathe_btn') {
     push();
     drawPanel();
-    // Highlight the breathe button area at bottom of action buttons
     let px2 = panelX + 20, pw2 = PANEL_WIDTH - 40;
-    // Breathe button is the 4th button below the 3 action buttons
-    // Approximate its Y based on drawActionButtons layout
-    let btnH2 = 38, gap2 = 8;
-    let approxBreatheY2 = CANVAS_H - 220;
+    let bBtnY2 = lastBreatheButtonY > 0 ? lastBreatheButtonY : CANVAS_H - 120;
+    let btnH2 = 38;
     noFill();
     stroke(160, 170, 180, pulseAlpha);
     strokeWeight(4);
-    rect(px2 - 4, approxBreatheY2 - 4, pw2 + 8, btnH2 + 8, 8);
+    rect(px2 - 4, bBtnY2 - 4, pw2 + 8, btnH2 + 8, 8);
     pop();
   }
 }
@@ -2017,6 +2013,7 @@ function drawPanel() {
 // ACTION BUTTONS (color-coded)
 // ============================================================
 let actionBtns = [];
+let lastBreatheButtonY = 0; // tracked for tutorial highlight
 
 function drawActionButtons(px, py, pw) {
   let btnW = pw, btnH = 38, gap = 8;
@@ -2081,6 +2078,7 @@ function drawActionButtons(px, py, pw) {
 
   // Breathe button (visual indicator, activated by holding Space)
   let breatheY = py + 3 * (btnH + gap) + gap;
+  lastBreatheButtonY = breatheY;
   let breatheAvail = breatheCooldown <= 0 && overwhelmTimer <= 0 && !isBreathing && tensionMeter > 0;
 
   // Bottom shadow
@@ -2108,15 +2106,15 @@ function drawActionButtons(px, py, pw) {
     textAlign(CENTER, CENTER); textSize(15);
     text('\u{1F4A8} Breathe [Space] ' + (breatheCooldown > 0 ? nf(breatheCooldown, 1, 0) + 's' : ''), px + btnW/2, breatheY + btnH/2);
   } else {
-    // Available — soft grey
+    // Available — lighter grey so it's clearly active
     let hov = mouseX >= px && mouseX <= px + btnW && mouseY >= breatheY && mouseY <= breatheY + btnH;
-    fill(hov ? [60, 65, 70] : [45, 50, 55]);
-    stroke(160, 170, 180, hov ? 180 : 100);
+    fill(hov ? [75, 82, 88] : [58, 64, 70]);
+    stroke(180, 190, 200, hov ? 200 : 130);
     strokeWeight(1.5);
     rect(px, breatheY, btnW, btnH, 6);
     noStroke();
     // Inner glow
-    fill(160, 170, 180, 40);
+    fill(180, 190, 200, 50);
     rect(px + 1, breatheY + 1, btnW - 2, 1, 1);
     fill(COL.buttonText);
     textAlign(CENTER, CENTER); textSize(15); textStyle(BOLD);
