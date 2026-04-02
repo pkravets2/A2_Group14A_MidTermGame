@@ -837,11 +837,10 @@ function endTutorial() {
   surgeVisualIntensity = 0;
   tensionMeter = 0;
   for (let b of beds) b.hasFalseAlert = false;
-  // Reset to Level 1 config (no surges)
+  // Re-initialize for Level 2 gameplay
   levelConfig = LEVELS[0];
-  // Re-initialize for actual gameplay
   actionBtns = [];
-  initGame(0);
+  initGame(1);
   startCountdown();
 }
 
@@ -1637,6 +1636,7 @@ function initPauseButtons() {
       tutorialSurgeActive = false;
       surgeActive = false;
       surgeVisualIntensity = 0;
+      tensionMeter = 0;
       for (let b of beds) b.hasFalseAlert = false;
       actionBtns = [];
       initGame(1);
