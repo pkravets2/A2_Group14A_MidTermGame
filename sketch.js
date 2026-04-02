@@ -54,6 +54,8 @@ const BREATHE_DRAIN_REDUCTION = 0.25; // Drain multiplier while breathing (75% s
 const TENSION_DRAIN_BONUS_START = 50; // Tension level where drain penalty begins
 const TENSION_DRAIN_MAX_MULT = 1.5;   // Max drain multiplier at tension 100
 const TENSION_OVERLOAD_FREEZE = 2.0;  // Seconds of freeze when tension hits 100
+const TENSION_PASSIVE_RISE = 0.4;     // Tension gained per second just from existing
+const BREATHE_TIMER_SLOW = 0.35;      // Timer runs at 35% speed while breathing
 
 // Plant image thresholds
 const PLANT_IMG_GOOD_MIN = 67;
@@ -276,10 +278,16 @@ const TUTORIAL_STEPS = [
   { id: 'surge_explain',  text: 'That was a surge! During surges,\nplants drain faster and tension goes up.\nJust focus on your most thirsty plants.',
     hint: '[ Click to continue ]', highlight: null, advanceOn: 'click' },
 
-  { id: 'tension_explain',text: 'See the Tension meter? When it gets high,\nplants drain even faster! If it fills up\ncompletely, you freeze for a moment.',
+  { id: 'tension_explain',text: 'See the Tension meter? It slowly builds up\nover time. When it gets high, plants drain\nfaster! Let\'s see what happens when it fills up...',
     hint: '[ Click to continue ]', highlight: 'tension_meter', advanceOn: 'click' },
 
-  { id: 'breathe_explain',text: 'But don\'t worry! You can BREATHE.\nHold the Space bar to calm down.\nIt lowers tension AND slows all drain!',
+  { id: 'tension_forced', text: 'Tension is rising!\nWatch what happens when it gets too high...',
+    hint: 'Wait for the overwhelm...', highlight: 'tension_meter', advanceOn: 'overwhelm_end', forceTension: true },
+
+  { id: 'breathe_explain',text: 'You froze up! That happens when tension\nhits max. But you can stop it!\nHold SPACE to Breathe and lower tension.',
+    hint: 'Hold the SPACE bar now!', highlight: null, advanceOn: 'breathe', forceTensionHigh: true },
+
+  { id: 'breathe_done',   text: 'Great job! Breathing lowers tension\nAND slows everything down.\nYou can only breathe when you have tension.',
     hint: '[ Click to continue ]', highlight: null, advanceOn: 'click' },
 
   { id: 'ready',          text: 'You\'re ready! Keep all plants alive\nuntil the timer runs out. Good luck!',
@@ -807,6 +815,9 @@ function updateTension(dt) {
     tensionMeter -= BREATHE_TENSION_REDUCE * dt;
   }
 
+  // Passive tension rise — tension builds just from existing
+  tensionMeter += TENSION_PASSIVE_RISE * dt;
+
   // Surge raises tension
   if (surgeActive) {
     tensionMeter += TENSION_RISE_SURGE * dt;
@@ -816,7 +827,7 @@ function updateTension(dt) {
   let activeAlerts = beds.filter(b => !b.isWilted && b.trueUrgency === 'critical').length;
   tensionMeter += activeAlerts * TENSION_RISE_ALERTS * dt;
 
-  // Natural decay (only when not surging and few critical plants)
+  // Natural decay (only when not surging and few critical plants, not breathing)
   if (!surgeActive && activeAlerts < 2 && !isBreathing) {
     tensionMeter -= TENSION_DECAY * dt;
   }
@@ -954,9 +965,12 @@ function startTutorial() {
 }
 
 function advanceTutorial() {
-  // Stop drain from previous step
+  // Clean up previous step state
   tutorialDrainEnabled = false;
   tutorialDrainTimer = 0;
+  isBreathing = false;
+  breatheCooldown = 0;
+  overwhelmTimer = 0;
 
   tutorialStep++;
   if (tutorialStep >= TUTORIAL_STEPS.length) {
@@ -975,11 +989,14 @@ function advanceTutorial() {
     surgeTimer = 4;
     surgeVisualIntensity = 1.0;
     playSoundSurgeStart();
-    // Set false alerts on available plants
     let available = beds.filter(b => !b.isWilted && b.trueUrgency !== 'critical');
     shuffle(available, true);
     let count = min(FALSE_ALERT_COUNT, available.length);
     for (let i = 0; i < count; i++) available[i].hasFalseAlert = true;
+  }
+  // Force tension to start ramping for the tension demo
+  if (step.forceTension) {
+    tensionMeter = 30; // Start partway up so it fills faster
   }
 }
 
@@ -2035,7 +2052,7 @@ function drawActionButtons(px, py, pw) {
 
   // Breathe button (visual indicator, activated by holding Space)
   let breatheY = py + 3 * (btnH + gap) + gap;
-  let breatheAvail = breatheCooldown <= 0 && overwhelmTimer <= 0 && !isBreathing;
+  let breatheAvail = breatheCooldown <= 0 && overwhelmTimer <= 0 && !isBreathing && tensionMeter > 0;
 
   // Bottom shadow
   noStroke();
@@ -2659,6 +2676,41 @@ function draw() {
         }
       }
 
+      // Forced tension demo: ramp tension to 100, trigger overwhelm, auto-advance
+      if (step.forceTension) {
+        tensionMeter += 25 * dt; // Ramp fast so player sees it fill
+        tensionMeter = constrain(tensionMeter, 0, 100);
+        if (tensionMeter >= 100 && overwhelmTimer <= 0) {
+          overwhelmTimer = TENSION_OVERLOAD_FREEZE;
+        }
+        if (overwhelmTimer > 0) {
+          overwhelmTimer -= dt;
+          if (overwhelmTimer <= 0) {
+            tensionMeter = 60; // Leave it high so they need to breathe
+            overwhelmTimer = 0;
+            advanceTutorial();
+          }
+        }
+      }
+
+      // Forced high tension for breathe step: keep tension at 60 until they breathe
+      if (step.forceTensionHigh) {
+        if (!isBreathing) {
+          tensionMeter = max(tensionMeter, 60); // Keep it high
+        }
+        if (breatheCooldown > 0) breatheCooldown -= dt;
+        // Advance once they've breathed it below 30
+        if (isBreathing) {
+          tensionMeter -= BREATHE_TENSION_REDUCE * dt;
+          tensionMeter = max(tensionMeter, 0);
+          if (tensionMeter <= 20) {
+            isBreathing = false;
+            breatheCooldown = 0;
+            advanceTutorial();
+          }
+        }
+      }
+
       drawTutorial();
       break;
     }
@@ -2702,7 +2754,8 @@ function draw() {
 // GAME UPDATE
 // ============================================================
 function updateGame(dt) {
-  timer -= dt; timer = max(0, timer);
+  let timerDt = isBreathing ? dt * BREATHE_TIMER_SLOW : dt;
+  timer -= timerDt; timer = max(0, timer);
   updateDifficulty();
   if (waterCooldown > 0) waterCooldown -= dt;
   if (lightCooldown > 0) lightCooldown -= dt;
@@ -2814,7 +2867,10 @@ function keyReleased() {
   if (key === ' ') {
     if (isBreathing) {
       isBreathing = false;
-      breatheCooldown = BREATHE_COOLDOWN;
+      // Don't set cooldown during tutorial breathe step
+      if (!tutorialActive) {
+        breatheCooldown = BREATHE_COOLDOWN;
+      }
     }
   }
 }
@@ -2938,6 +2994,11 @@ function handleTutorialInput() {
   if (step.advanceOn === 'water' && (key === 'q' || key === 'Q')) doAction('water');
   if (step.advanceOn === 'light' && (key === 'e' || key === 'E')) doAction('light');
   if (step.advanceOn === 'airflow' && (key === 'r' || key === 'R')) doAction('airflow');
+
+  // Breathe step — hold spacebar
+  if (step.advanceOn === 'breathe' && key === ' ') {
+    isBreathing = true;
+  }
 }
 
 function handlePlayingInput() {
@@ -2949,7 +3010,7 @@ function handlePlayingInput() {
   if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) col = min(currentGridCols-1, col+1);
   selectedBed = row * currentGridCols + col;
 
-  if (key === ' ' && breatheCooldown <= 0 && overwhelmTimer <= 0) {
+  if (key === ' ' && breatheCooldown <= 0 && overwhelmTimer <= 0 && tensionMeter > 0) {
     isBreathing = true;
   }
   if (key === 'q' || key === 'Q') queueAction(() => doAction('water'));
