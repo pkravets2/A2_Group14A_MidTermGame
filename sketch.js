@@ -285,9 +285,67 @@ let countdownPhase = 0; // 0=3, 1=2, 2=1, 3=GO!, 4=done
 // ============================================================
 let soundMuted = false;
 let soundInitialized = false;
+let musicMuted = false;
+let bgm = null;
+let bgmLoaded = false;
+
+const MUSIC_BTN = { x: CANVAS_W - 44, y: 6, w: 36, h: 36 };
 
 function initSound() {
   soundInitialized = true;
+}
+
+function initBGM() {
+  try {
+    bgm = createAudio('assets/royalty_free_farm_music.mp3');
+    bgm.loop();
+    bgm.volume(0.3);
+    if (musicMuted) bgm.pause();
+    bgmLoaded = true;
+  } catch (e) {
+    console.warn('BGM could not be loaded.', e);
+    bgm = null;
+    bgmLoaded = false;
+  }
+}
+
+function toggleMusic() {
+  musicMuted = !musicMuted;
+  if (!bgm) return;
+  if (musicMuted) {
+    try { bgm.pause(); } catch (e) {}
+  } else {
+    try { bgm.loop(); } catch (e) {}
+  }
+}
+
+function drawMusicToggle() {
+  let mx = MUSIC_BTN.x, my = MUSIC_BTN.y, mw = MUSIC_BTN.w, mh = MUSIC_BTN.h;
+  let hovered = mouseX >= mx && mouseX <= mx + mw && mouseY >= my && mouseY <= my + mh;
+
+  // Background
+  fill(hovered ? 50 : 30, hovered ? 55 : 35, hovered ? 50 : 30, 180);
+  noStroke();
+  rect(mx, my, mw, mh, 8);
+
+  // Speaker icon
+  fill(musicMuted ? [180, 80, 80] : COL.accent);
+  textAlign(CENTER, CENTER);
+  textSize(18);
+  textStyle(NORMAL);
+  if (musicMuted) {
+    text('\u{1F507}', mx + mw / 2, my + mh / 2);
+  } else {
+    text('\u{1F50A}', mx + mw / 2, my + mh / 2);
+  }
+
+  // Strikethrough line when muted
+  if (musicMuted) {
+    stroke(220, 75, 75, 200);
+    strokeWeight(2);
+    line(mx + 6, my + 6, mx + mw - 6, my + mh - 6);
+    noStroke();
+  }
 }
 
 let audioCtx = null;
@@ -2469,6 +2527,9 @@ function draw() {
       drawPause();
       break;
   }
+
+  // Music toggle icon — always visible on every screen
+  drawMusicToggle();
 }
 
 // ============================================================
@@ -2492,10 +2553,13 @@ function updateGame(dt) {
 // INPUT: KEYBOARD
 // ============================================================
 function keyPressed() {
+  // Start BGM on first interaction
+  if (!bgmLoaded) initBGM();
+
   // Global toggles
   if (key === 'v' || key === 'V') { reducedEffects = !reducedEffects; return; }
   if (key === 'h' || key === 'H') { debugShowHitboxes = !debugShowHitboxes; return; }
-  if (key === 'm' || key === 'M') { soundMuted = !soundMuted; return; }
+  if (key === 'm' || key === 'M') { soundMuted = !soundMuted; toggleMusic(); return; }
 
   switch (gameState) {
     case STATE.TITLE:
@@ -2717,6 +2781,15 @@ function handlePlayingInput() {
 // INPUT: MOUSE
 // ============================================================
 function mousePressed() {
+  // Music toggle icon — works on every screen
+  if (isInRect(mouseX, mouseY, MUSIC_BTN)) {
+    toggleMusic();
+    return;
+  }
+
+  // Start BGM on first interaction if not yet loaded
+  if (!bgmLoaded) initBGM();
+
   switch (gameState) {
     case STATE.TITLE:
       if (showInstructionsOverlay) {
