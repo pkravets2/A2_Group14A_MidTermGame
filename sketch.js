@@ -1181,34 +1181,56 @@ function drawCountdown() {
 
   let displayText;
   let displayColor;
-  let displaySize = 72;
+  let displaySize = 96;
 
   if (countdownTimer < 1) { displayText = '3'; displayColor = COL.accent; }
   else if (countdownTimer < 2) { displayText = '2'; displayColor = COL.accent; }
   else if (countdownTimer < 3) { displayText = '1'; displayColor = COL.accent; }
-  else { displayText = 'GO!'; displayColor = COL.combo; displaySize = 80; }
+  else { displayText = 'GO!'; displayColor = COL.combo; displaySize = 110; }
 
   let cx = (CANVAS_W - PANEL_WIDTH) / 2 + 10;
+  let cy = CANVAS_H / 2;
+  let t = millis() / 1000;
+
+  // Circular pulse ring behind number
+  let phase = countdownTimer % 1.0;
+  let ringRadius = 40 + phase * 80;
+  let ringAlpha = (1 - phase) * 120;
+  noFill();
+  stroke(displayColor[0], displayColor[1], displayColor[2], ringAlpha);
+  strokeWeight(3);
+  ellipse(cx, cy, ringRadius * 2, ringRadius * 2);
+  // Second ring offset
+  let phase2 = (countdownTimer + 0.5) % 1.0;
+  let ringRadius2 = 40 + phase2 * 80;
+  let ringAlpha2 = (1 - phase2) * 80;
+  stroke(displayColor[0], displayColor[1], displayColor[2], ringAlpha2);
+  strokeWeight(2);
+  ellipse(cx, cy, ringRadius2 * 2, ringRadius2 * 2);
+  noStroke();
 
   // Level name in accent color above
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
-  textSize(24);
+  textSize(28);
+  // Glow behind level name
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 40);
+  text(levelConfig.label, cx, cy - 100);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
-  text(levelConfig.label, cx, CANVAS_H / 2 - 80);
+  text(levelConfig.label, cx, cy - 100);
 
-  // Glow behind countdown number
-  textSize(displaySize + 30);
-  fill(displayColor[0], displayColor[1], displayColor[2], 30);
-  text(displayText, cx, CANVAS_H / 2);
-  textSize(displaySize + 12);
-  fill(displayColor[0], displayColor[1], displayColor[2], 50);
-  text(displayText, cx, CANVAS_H / 2);
+  // Glow layers behind countdown number
+  textSize(displaySize + 40);
+  fill(displayColor[0], displayColor[1], displayColor[2], 20);
+  text(displayText, cx, cy);
+  textSize(displaySize + 18);
+  fill(displayColor[0], displayColor[1], displayColor[2], 40);
+  text(displayText, cx, cy);
 
   // Main countdown number
   textSize(displaySize);
   fill(displayColor[0], displayColor[1], displayColor[2]);
-  text(displayText, cx, CANVAS_H / 2);
+  text(displayText, cx, cy);
   textStyle(NORMAL);
 }
 
@@ -1310,15 +1332,19 @@ function drawInstructionsOverlay() {
   let oy = INSTR_OVERLAY_Y;
   let cx = ox + INSTR_OVERLAY_W / 2;
 
-  // Title
-  textAlign(CENTER, TOP); textStyle(BOLD); textSize(26);
+  // Title with glow
+  textAlign(CENTER, TOP); textStyle(BOLD);
+  textSize(36);
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 30);
+  text('How to Play', cx, oy + 14);
+  textSize(32);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
-  text('How to Play', cx, oy + 18);
+  text('How to Play', cx, oy + 16);
 
   // === TOP SECTION: Action cards ===
-  let cardW = 200, cardH = 100, cardGap = 30;
+  let cardW = 200, cardH = 120, cardGap = 30;
   let cardsStartX = cx - (3 * cardW + 2 * cardGap) / 2;
-  let cardsY = oy + 65;
+  let cardsY = oy + 68;
 
   let actions = [
     { icon: '\uD83D\uDCA7', key: 'Q', desc: 'Water the plant', col: COL.water },
@@ -1330,31 +1356,35 @@ function drawInstructionsOverlay() {
     let ax = cardsStartX + i * (cardW + cardGap);
     let a = actions[i];
 
-    // Card background — warmer tone
+    // Card background
     fill(32, 36, 45, 210);
-    stroke(a.col[0], a.col[1], a.col[2], 100);
+    stroke(a.col[0], a.col[1], a.col[2], 60);
     strokeWeight(1.5);
     rect(ax, cardsY, cardW, cardH, 8);
     noStroke();
 
+    // Colored top border bar
+    fill(a.col[0], a.col[1], a.col[2], 180);
+    rect(ax + 8, cardsY, cardW - 16, 3, 2);
+
     // Icon
-    textAlign(CENTER, CENTER); textSize(28);
+    textAlign(CENTER, CENTER); textSize(34);
     fill(a.col[0], a.col[1], a.col[2]);
-    text(a.icon, ax + cardW / 2, cardsY + 28);
+    text(a.icon, ax + cardW / 2, cardsY + 34);
 
-    // Key binding — bigger
-    textSize(20); textStyle(BOLD);
+    // Key binding
+    textSize(24); textStyle(BOLD);
     fill(COL.textPrimary);
-    text(a.key, ax + cardW / 2, cardsY + 55);
+    text(a.key, ax + cardW / 2, cardsY + 68);
 
-    // Description — slightly bigger
-    textSize(14); textStyle(NORMAL);
+    // Description
+    textSize(16); textStyle(NORMAL);
     fill(COL.textSecondary);
-    text(a.desc, ax + cardW / 2, cardsY + 78);
+    text(a.desc, ax + cardW / 2, cardsY + 98);
   }
 
   // Movement line
-  textAlign(CENTER, TOP); textSize(13); textStyle(NORMAL);
+  textAlign(CENTER, TOP); textSize(15); textStyle(NORMAL);
   fill(COL.textSecondary);
   text('WASD / Arrows / Click to select a plant', cx, cardsY + cardH + 18);
 
@@ -1368,36 +1398,41 @@ function drawInstructionsOverlay() {
 
   for (let i = 0; i < conceptItems.length; i++) {
     let item = conceptItems[i];
-    let iy = conceptsY + i * 38;
+    let iy = conceptsY + i * 44;
     let leftEdge = cx - 280;
 
+    // Colored dot before label
+    noStroke();
+    fill(item.col[0], item.col[1], item.col[2], 200);
+    ellipse(leftEdge + 4, iy + 10, 8, 8);
+
     // Icon
-    textAlign(LEFT, CENTER); textSize(18);
+    textAlign(LEFT, CENTER); textSize(22);
     fill(item.col[0], item.col[1], item.col[2]);
-    text(item.icon, leftEdge, iy + 10);
+    text(item.icon, leftEdge + 16, iy + 10);
 
     // Label
-    textSize(14); textStyle(BOLD);
+    textSize(16); textStyle(BOLD);
     fill(item.col[0], item.col[1], item.col[2]);
-    text(item.label, leftEdge + 30, iy + 10);
+    text(item.label, leftEdge + 44, iy + 10);
 
     // Description
-    textSize(13); textStyle(NORMAL);
+    textSize(15); textStyle(NORMAL);
     fill(COL.textSecondary);
     text(item.desc, leftEdge + 180, iy + 10);
   }
 
   // === BOTTOM SECTION: Design note ===
-  let noteY = conceptsY + conceptItems.length * 38 + 30;
-  textAlign(CENTER, CENTER); textSize(12); textStyle(ITALIC);
+  let noteY = conceptsY + conceptItems.length * 44 + 30;
+  textAlign(CENTER, CENTER); textSize(14); textStyle(ITALIC);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 160);
   text('This game uses symbolic mechanics to respectfully represent disruption and coping.', cx, noteY);
   textStyle(NORMAL);
 
-  // Close button
-  let closeBtnX = ox + INSTR_OVERLAY_W - 200;
-  let closeBtnY = oy + INSTR_OVERLAY_H - 60;
-  let closeBtnW = 160, closeBtnH = 44;
+  // Close button — bigger
+  let closeBtnW = 180, closeBtnH = 50;
+  let closeBtnX = ox + INSTR_OVERLAY_W - closeBtnW - 20;
+  let closeBtnY = oy + INSTR_OVERLAY_H - closeBtnH - 14;
   let hovered = isInRect(mouseX, mouseY, {x:closeBtnX, y:closeBtnY, w:closeBtnW, h:closeBtnH});
   drawStyledButton(closeBtnX, closeBtnY, closeBtnW, closeBtnH, 'Close [Esc]', hovered);
 }
@@ -1576,8 +1611,8 @@ function drawBed(bed) {
     textAlign(RIGHT,TOP); textSize(13); text('!', bx+bw-6, by+6);
   }
 
-  fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],80);
-  textAlign(LEFT,TOP); textSize(8);
+  fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],120);
+  textAlign(LEFT,TOP); textSize(9);
   text('#'+(bed.index+1), bx+4, by+4);
 }
 
@@ -1615,8 +1650,11 @@ function drawPanel() {
   }
   py += 46;
 
-  // Timer with circular background
-  textStyle(BOLD); textSize(13);
+  // Timer with circular background and accent left border
+  noStroke();
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 160);
+  rect(px - 6, py, 2, 14);
+  textStyle(BOLD); textSize(14);
   fill(COL.textSecondary); text('TIME', px, py);
   let timerVal = floor(timer);
   // Subtle circular bg behind timer number
@@ -1624,13 +1662,25 @@ function drawPanel() {
   noStroke();
   ellipse(px + 30, py + 36, 56, 56);
   textSize(36);
-  fill(timer < 15 ? COL.healthLow : COL.textPrimary);
+  // Pulse when timer < 10
+  let timerAlpha = 255;
+  if (timerVal < 10) { timerAlpha = 180 + sin(millis() / 200) * 75; }
+  if (timer < 15) fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], timerAlpha);
+  else fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2], timerAlpha);
   text(timerVal+'s', px, py+16); py += 68;
 
-  textSize(13); fill(COL.textSecondary); text('SCORE', px, py);
-  textSize(28); fill(COL.textPrimary); text(floor(score), px, py+16); py += 56;
+  // Score with accent left border
+  noStroke();
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 160);
+  rect(px - 6, py, 2, 14);
+  textSize(14); fill(COL.textSecondary); text('SCORE', px, py);
+  textStyle(BOLD); textSize(30); fill(COL.textPrimary); text(floor(score), px, py+16); textStyle(NORMAL); py += 58;
 
-  textSize(13); fill(COL.combo);
+  // Harmony with accent left border
+  noStroke();
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 160);
+  rect(px - 6, py, 2, 14);
+  textSize(14); fill(COL.combo);
   text('HARMONY  x'+nf(comboMultiplier,1,1), px, py); py += 20;
   // Inner shadow behind harmony bar
   fill(15,15,10); rect(px, py, pw, 12, 4);
@@ -1640,7 +1690,10 @@ function drawPanel() {
 
   // Tension (only show if surges are active for this level)
   if (levelConfig.surgeMult > 0) {
-    textSize(13); fill(COL.textSecondary); text('TENSION', px, py); py += 18;
+    noStroke();
+    fill(COL.accent[0], COL.accent[1], COL.accent[2], 160);
+    rect(px - 6, py, 2, 14);
+    textSize(14); fill(COL.textSecondary); text('TENSION', px, py); py += 18;
     // Glow effect when tension > 60
     if (tensionMeter > 60) {
       fill(200, 60, 60, 20 + sin(millis()/200)*15);
@@ -1656,9 +1709,20 @@ function drawPanel() {
     text(floor(tensionMeter), px+pw/2, py+9);
     textAlign(LEFT,TOP); py += 34;
 
-    textSize(13);
-    if (surgeActive) { fill(COL.surge); textStyle(BOLD); text('\u26A1 SURGE ACTIVE', px, py); textStyle(NORMAL); }
-    else { fill(COL.textSecondary); text('System Stable', px, py); }
+    textSize(14);
+    if (surgeActive) {
+      // Pulsing red glow dot
+      let surgeGlow = 180 + sin(millis() / 150) * 75;
+      fill(COL.surge[0], COL.surge[1], COL.surge[2], surgeGlow);
+      noStroke(); ellipse(px + 5, py + 7, 8, 8);
+      fill(COL.surge[0], COL.surge[1], COL.surge[2], surgeGlow);
+      textStyle(BOLD); text('  SURGE ACTIVE', px + 4, py); textStyle(NORMAL);
+    } else {
+      // Green glow dot
+      fill(COL.accent[0], COL.accent[1], COL.accent[2], 180);
+      noStroke(); ellipse(px + 5, py + 7, 8, 8);
+      fill(COL.textSecondary); text('  System Stable', px + 4, py);
+    }
     py += 28;
   } else {
     py += 10;
@@ -1674,31 +1738,43 @@ function drawPanel() {
   py += 14;
 
   let sb = beds[selectedBed];
-  textSize(13); fill(COL.textSecondary);
-  text('SELECTED BED #'+(selectedBed+1), px, py); py += 20;
+  noStroke();
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 160);
+  rect(px - 6, py, 2, 14);
+  textSize(14); fill(COL.textSecondary);
+  text('SELECTED BED #'+(selectedBed+1), px, py); py += 22;
 
   if (sb && !sb.isWilted) {
-    textSize(12);
+    textSize(13);
     // Mini colored dots before each stat
-    fill(COL.health); noStroke(); ellipse(px+4, py+6, 6, 6);
-    fill(COL.textPrimary); text('  Health: '+floor(sb.health), px+6, py); py += 16;
-    fill(COL.water); ellipse(px+4, py+6, 6, 6);
-    fill(COL.water); text('  Water:  '+floor(sb.water), px+6, py); py += 16;
-    fill(COL.light); ellipse(px+4, py+6, 6, 6);
-    fill(COL.light); text('  Light:  '+floor(sb.light), px+6, py); py += 16;
-    if (sb.airflowActive) { fill(COL.airflow); ellipse(px+4, py+6, 6, 6); text('  Airflow: '+nf(sb.airflowTimer,1,1)+'s', px+6, py); }
+    fill(COL.health); noStroke(); ellipse(px+4, py+7, 6, 6);
+    fill(COL.textPrimary); textStyle(BOLD); text('  Health: '+floor(sb.health), px+6, py); textStyle(NORMAL); py += 18;
+    fill(COL.water); ellipse(px+4, py+7, 6, 6);
+    fill(COL.water); textStyle(BOLD); text('  Water:  '+floor(sb.water), px+6, py); textStyle(NORMAL); py += 18;
+    fill(COL.light); ellipse(px+4, py+7, 6, 6);
+    fill(COL.light); textStyle(BOLD); text('  Light:  '+floor(sb.light), px+6, py); textStyle(NORMAL); py += 18;
+    if (sb.airflowActive) { fill(COL.airflow); ellipse(px+4, py+7, 6, 6); textStyle(BOLD); text('  Airflow: '+nf(sb.airflowTimer,1,1)+'s', px+6, py); textStyle(NORMAL); }
   } else if (sb && sb.isWilted) {
-    fill(COL.healthLow); textSize(12); text('This plant has wilted.', px, py);
+    fill(COL.healthLow); textSize(13); text('This plant has wilted.', px, py);
   }
   py += 30;
 
   drawActionButtons(px, py, pw);
 
   let wc = beds.filter(b => b.isWilted).length;
-  textAlign(LEFT,BOTTOM); textSize(14);
-  fill(wc >= currentLoseThreshold-1 ? COL.healthLow : COL.textSecondary);
-  let wiltWarning = wc >= currentLoseThreshold-1 ? '\u26A0 ' : '';
-  text(wiltWarning+'Wilted: '+wc+' / '+currentLoseThreshold+' max', px, CANVAS_H-38);
+  let wiltNearThreshold = wc >= currentLoseThreshold - 1;
+  // Background card when near threshold
+  if (wiltNearThreshold) {
+    noStroke();
+    fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 25);
+    rect(px - 4, CANVAS_H - 56, pw + 8, 26, 6);
+  }
+  textAlign(LEFT,BOTTOM); textSize(15);
+  fill(wiltNearThreshold ? COL.healthLow : COL.textSecondary);
+  let wiltWarning = wiltNearThreshold ? '\u26A0 ' : '';
+  textStyle(BOLD);
+  text(wiltWarning+'Wilted: '+wc+' / '+currentLoseThreshold+' max', px, CANVAS_H-36);
+  textStyle(NORMAL);
   textSize(11); fill(COL.textSecondary[0],COL.textSecondary[1],COL.textSecondary[2],140);
   text('Esc/P=Pause  V=Effects  M=Mute', px, CANVAS_H-18);
 }
@@ -1840,10 +1916,15 @@ function drawPause() {
   fill(COL.accent[0], COL.accent[1], COL.accent[2], 180);
   text('Garden Circuit', CANVAS_W/2, CANVAS_H/2 - 170);
 
-  textStyle(BOLD); textSize(36);
+  // "PAUSED" with glow
+  textStyle(BOLD);
+  textSize(48);
+  fill(COL.textPrimary[0], COL.textPrimary[1], COL.textPrimary[2], 25);
+  text('PAUSED', CANVAS_W/2, CANVAS_H/2 - 138);
+  textSize(42);
   fill(COL.textPrimary);
   text('PAUSED', CANVAS_W/2, CANVAS_H/2 - 140);
-  textStyle(NORMAL); textSize(14);
+  textStyle(NORMAL); textSize(16);
   fill(COL.textSecondary);
   text('Press Esc or P to resume', CANVAS_W/2, CANVAS_H/2 - 105);
 
@@ -1865,37 +1946,125 @@ function drawPause() {
 function drawLevelComplete() {
   background(COL.bg); let cx = CANVAS_W/2;
   let t = millis()/1000; noStroke();
-  // Larger, more visible celebration particles
-  for (let i = 0; i < 15; i++) {
-    let pc = i % 3 === 0 ? COL.accent : i % 3 === 1 ? COL.combo : COL.water;
-    fill(pc[0],pc[1],pc[2], 20 + sin(t*0.5+i)*8);
-    let sz = 60 + sin(t*0.4+i)*15;
-    ellipse(cx+cos(t*0.2+i*0.6)*280, CANVAS_H/2+sin(t*0.3+i*0.8)*180, sz, sz);
-  }
-  textAlign(CENTER,CENTER); textStyle(BOLD); textSize(40);
-  fill(COL.accent); text(levelConfig.label + ' Complete!', cx, 100);
-  textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
-  text('Well done! The garden holds.', cx, 145);
 
-  // Grade display
+  // --- Botanical victory scene ---
+  // Soft light rays from above
+  for (let i = 0; i < 5; i++) {
+    let rayX = cx - 200 + i * 100 + sin(t * 0.3 + i) * 20;
+    let rayAlpha = 8 + sin(t * 0.5 + i * 0.7) * 4;
+    fill(255, 240, 180, rayAlpha);
+    beginShape();
+    vertex(rayX - 15, 0);
+    vertex(rayX + 15, 0);
+    vertex(rayX + 60, CANVAS_H);
+    vertex(rayX - 60, CANVAS_H);
+    endShape(CLOSE);
+  }
+
+  // Ground line
+  fill(40, 80, 50, 120);
+  rect(0, CANVAS_H - 100, CANVAS_W, 100);
+  stroke(60, 130, 70, 100); strokeWeight(2);
+  line(0, CANVAS_H - 100, CANVAS_W, CANVAS_H - 100);
+  noStroke();
+
+  // Small plant silhouettes along the ground
+  let plantPositions = [120, 280, 500, 720, 900];
+  for (let i = 0; i < plantPositions.length; i++) {
+    let px2 = plantPositions[i];
+    let groundY = CANVAS_H - 100;
+    let sway = sin(t * 0.8 + i * 1.3) * 3;
+    // Stem
+    stroke(50, 100, 60, 100); strokeWeight(2);
+    line(px2, groundY, px2 + sway, groundY - 30 - i * 5);
+    noStroke();
+    // Leaf triangle
+    fill(50, 120, 60, 80);
+    triangle(px2 + sway - 10, groundY - 25 - i * 5,
+             px2 + sway + 10, groundY - 25 - i * 5,
+             px2 + sway, groundY - 50 - i * 5);
+  }
+
+  // Gentle floating leaf particles (small rotated squares drifting down)
+  for (let i = 0; i < 8; i++) {
+    let leafX = (cx + sin(t * 0.2 + i * 2.1) * 350 + i * 80) % CANVAS_W;
+    let leafY = ((t * 15 + i * 90) % (CANVAS_H - 120));
+    let leafRot = t * 0.5 + i * 1.5;
+    let leafAlpha = 30 + sin(t + i) * 15;
+    push();
+    translate(leafX, leafY);
+    rotate(leafRot);
+    fill(70, 140, 80, leafAlpha);
+    noStroke();
+    rect(-4, -4, 8, 8);
+    pop();
+  }
+
+  // --- Title with warm golden glow ---
+  textAlign(CENTER,CENTER); textStyle(BOLD);
+  // Glow layer
+  textSize(58);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 20);
+  text(levelConfig.label + ' Complete!', cx, 95);
+  textSize(54);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 35);
+  text(levelConfig.label + ' Complete!', cx, 95);
+  // Main title
+  textSize(52);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2]);
+  text(levelConfig.label + ' Complete!', cx, 95);
+
+  // Subtitle
+  textStyle(NORMAL); textSize(20); fill(COL.textSecondary);
+  text('Your garden thrives.', cx, 145);
+
+  // Decorative gradient divider
+  noStroke();
+  for (let i = 0; i < 300; i++) {
+    let divAlpha = sin(map(i, 0, 300, 0, PI)) * 120;
+    fill(COL.combo[0], COL.combo[1], COL.combo[2], divAlpha);
+    rect(cx - 150 + i, 170, 1, 2);
+  }
+
+  // Grade display with golden glow
   let grade = computeGrade();
-  textStyle(BOLD); textSize(56);
+  textStyle(BOLD);
+  textSize(72);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 20);
+  text(grade, cx, 220);
+  textSize(68);
   fill(COL.combo[0], COL.combo[1], COL.combo[2], 40);
-  text(grade, cx, 200);
-  textSize(48);
+  text(grade, cx, 220);
+  textSize(64);
   fill(COL.combo);
-  text(grade, cx, 200);
-  textStyle(NORMAL); textSize(14); fill(COL.textSecondary);
-  text('Grade', cx, 235);
+  text(grade, cx, 220);
+  textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
+  text('Grade', cx, 260);
 
-  let y = 275, lh = 30;
-  textSize(16);
-  fill(COL.textPrimary); text('\uD83D\uDCCA Score: '+floor(score), cx, y); y += lh;
-  fill(COL.combo); text('\uD83C\uDFB5 Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
+  // --- Stats in a semi-transparent dark card ---
+  let cardX = cx - 180, cardY = 285, cardW2 = 360, cardPad = 20;
+  let statLines = 3;
+  if (levelConfig.surgeMult > 0) statLines = 4;
+  let cardH2 = statLines * 36 + cardPad * 2;
+  fill(15, 20, 25, 180);
+  noStroke();
+  rect(cardX, cardY, cardW2, cardH2, 10);
+  // Subtle border
+  noFill();
+  stroke(COL.combo[0], COL.combo[1], COL.combo[2], 40);
+  strokeWeight(1);
+  rect(cardX, cardY, cardW2, cardH2, 10);
+  noStroke();
+
+  let sy = cardY + cardPad + 10;
+  let slh = 36;
+  textAlign(LEFT, CENTER); textSize(18);
+  fill(COL.textPrimary); text('\uD83D\uDCCA  Score: '+floor(score), cardX + cardPad, sy); sy += slh;
+  fill(COL.combo); text('\uD83C\uDFB5  Best Harmony: x'+nf(stats.peakCombo,1,1), cardX + cardPad, sy); sy += slh;
   if (levelConfig.surgeMult > 0) {
-    fill(COL.surge); text('\u26A1 Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
+    fill(COL.surge); text('\u26A1  Surges Survived: '+stats.surgesSurvived, cardX + cardPad, sy); sy += slh;
   }
-  fill(COL.healthLow); text('\uD83E\uDD40 Plants Wilted: '+stats.plantsWilted, cx, y);
+  fill(COL.healthLow); text('\uD83E\uDD40  Plants Wilted: '+stats.plantsWilted, cardX + cardPad, sy);
 }
 
 // ============================================================
@@ -1904,54 +2073,94 @@ function drawLevelComplete() {
 function drawCongrats() {
   background(COL.bg); let cx = CANVAS_W/2;
   let t = millis()/1000; noStroke();
-  // More celebratory particles — more of them, more colors
-  for (let i = 0; i < 30; i++) {
-    let pc = i % 5 === 0 ? COL.accent : i % 5 === 1 ? COL.combo : i % 5 === 2 ? COL.water : i % 5 === 3 ? COL.health : COL.light;
-    fill(pc[0],pc[1],pc[2], 14 + sin(t*0.5+i)*7);
-    let sz = 45 + sin(t*0.6+i)*12;
-    ellipse(cx+cos(t*0.15+i*0.21)*380, CANVAS_H/2+sin(t*0.2+i*0.35)*270, sz, sz);
+
+  // --- Aurora / northern lights effect ---
+  let auroraColors = [
+    [60, 180, 120],   // green
+    [200, 180, 60],   // gold
+    [70, 120, 200],   // blue
+    [140, 80, 180],   // purple
+    [80, 200, 160],   // teal
+  ];
+  for (let band = 0; band < auroraColors.length; band++) {
+    let ac = auroraColors[band];
+    let baseY = 80 + band * 60;
+    let bandAlpha = 12 + sin(t * 0.3 + band * 1.2) * 6;
+    for (let x = 0; x < CANVAS_W; x += 4) {
+      let waveY = baseY + sin(x * 0.008 + t * 0.4 + band * 1.5) * 40
+                        + sin(x * 0.015 + t * 0.7 + band * 0.8) * 20;
+      fill(ac[0], ac[1], ac[2], bandAlpha);
+      rect(x, waveY, 5, 50);
+    }
   }
 
+  // --- "Congratulations!" with golden glow - 3 layers ---
   textAlign(CENTER,CENTER); textStyle(BOLD);
-  // Golden glow behind title (blurred/larger with low alpha)
+  textSize(60);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 20);
+  text('Congratulations!', cx, 90);
   textSize(56);
-  fill(COL.combo[0], COL.combo[1], COL.combo[2], 35);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 40);
   text('Congratulations!', cx, 90);
   textSize(52);
-  fill(COL.combo[0], COL.combo[1], COL.combo[2], 50);
-  text('Congratulations!', cx, 90);
-  // Main title
-  textSize(48);
-  let pulse = 200 + sin(t*2)*55;
-  fill(COL.combo[0], COL.combo[1], COL.combo[2], pulse);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2]);
   text('Congratulations!', cx, 90);
 
   textStyle(NORMAL); textSize(18); fill(COL.textSecondary);
   text('You completed all levels of Garden Circuit.', cx, 140);
 
-  // Grade display
+  // Decorative gradient divider
+  noStroke();
+  for (let i = 0; i < 300; i++) {
+    let divAlpha = sin(map(i, 0, 300, 0, PI)) * 120;
+    fill(COL.combo[0], COL.combo[1], COL.combo[2], divAlpha);
+    rect(cx - 150 + i, 165, 1, 2);
+  }
+
+  // Grade display with golden glow
   let grade = computeGrade();
-  textStyle(BOLD); textSize(60);
-  fill(COL.combo[0], COL.combo[1], COL.combo[2], 35);
-  text(grade, cx, 190);
-  textSize(50);
+  textStyle(BOLD); textSize(68);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 20);
+  text(grade, cx, 210);
+  textSize(60);
+  fill(COL.combo[0], COL.combo[1], COL.combo[2], 40);
+  text(grade, cx, 210);
+  textSize(54);
   fill(COL.combo);
-  text(grade, cx, 190);
-  textStyle(NORMAL); textSize(14); fill(COL.textSecondary);
-  text('Final Grade', cx, 225);
+  text(grade, cx, 210);
+  textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
+  text('Final Grade', cx, 248);
 
-  let y = 260, lh = 30;
-  textSize(16);
-  fill(COL.textPrimary); text('\uD83D\uDCCA Final Score: '+floor(score), cx, y); y += lh;
-  fill(COL.combo); text('\uD83C\uDFB5 Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
-  fill(COL.surge); text('\u26A1 Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
-  fill(COL.healthLow); text('\uD83E\uDD40 Plants Wilted: '+stats.plantsWilted, cx, y); y += lh + 15;
+  // --- Stats in polished card with golden border ---
+  let cardX = cx - 180, cardY = 275, cardW2 = 360, cardPad = 20;
+  let cardH2 = 4 * 36 + cardPad * 2;
+  fill(15, 20, 25, 190);
+  noStroke();
+  rect(cardX, cardY, cardW2, cardH2, 10);
+  // Golden border
+  noFill();
+  stroke(COL.combo[0], COL.combo[1], COL.combo[2], 60);
+  strokeWeight(1.5);
+  rect(cardX, cardY, cardW2, cardH2, 10);
+  noStroke();
 
-  textSize(13); textStyle(ITALIC);
+  let sy = cardY + cardPad + 10;
+  let slh = 36;
+  textAlign(LEFT, CENTER); textSize(18);
+  fill(COL.textPrimary); text('\uD83D\uDCCA  Final Score: '+floor(score), cardX + cardPad, sy); sy += slh;
+  fill(COL.combo); text('\uD83C\uDFB5  Best Harmony: x'+nf(stats.peakCombo,1,1), cardX + cardPad, sy); sy += slh;
+  fill(COL.surge); text('\u26A1  Surges Survived: '+stats.surgesSurvived, cardX + cardPad, sy); sy += slh;
+  fill(COL.healthLow); text('\uD83E\uDD40  Plants Wilted: '+stats.plantsWilted, cardX + cardPad, sy);
+
+  // Thank you message
+  let thankY = cardY + cardH2 + 30;
+  textAlign(CENTER, CENTER);
+  textSize(14); textStyle(ITALIC);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 160);
-  text('This game uses symbolic mechanics to represent disruption and coping.', cx, y);
-  y += 20;
-  text('Thank you for playing.', cx, y);
+  text('This game uses symbolic mechanics to represent disruption and coping.', cx, thankY);
+  textSize(16);
+  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 200);
+  text('Thank you for playing.', cx, thankY + 24);
   textStyle(NORMAL);
 }
 
@@ -1959,33 +2168,122 @@ function drawCongrats() {
 // DRAW: LOSE SCREEN
 // ============================================================
 function drawLose() {
-  background(COL.bg); let cx = CANVAS_W/2;
-  // Subtle dark red tint over background
+  let cx = CANVAS_W/2;
+  let t = millis()/1000;
+
+  // --- Dark gradient background (darker at top, lighter at bottom) ---
   noStroke();
-  fill(60, 15, 15, 40);
+  for (let i = 0; i < CANVAS_H; i++) {
+    let r = lerp(12, 30, i / CANVAS_H);
+    let g = lerp(8, 20, i / CANVAS_H);
+    let b = lerp(14, 25, i / CANVAS_H);
+    fill(r, g, b);
+    rect(0, i, CANVAS_W, 1);
+  }
+
+  // Dark red tint
+  fill(60, 15, 15, 30);
   rect(0, 0, CANVAS_W, CANVAS_H);
 
+  // Faint rain effect
+  stroke(150, 160, 180, 20);
+  strokeWeight(1);
+  for (let i = 0; i < 40; i++) {
+    let rx = (i * 73 + t * 30) % CANVAS_W;
+    let ry = ((t * 60 + i * 47) % CANVAS_H);
+    line(rx, ry, rx - 1, ry + 12);
+  }
+  noStroke();
+
+  // Wilted plant shapes (drooping curves)
+  let wiltPositions = [150, 350, 550, 750, 950];
+  for (let i = 0; i < wiltPositions.length; i++) {
+    let wpx = wiltPositions[i];
+    let groundY = CANVAS_H - 90;
+    // Stem that droops
+    stroke(60, 45, 40, 60);
+    strokeWeight(2);
+    noFill();
+    beginShape();
+    let droop = 15 + i * 3;
+    vertex(wpx, groundY);
+    quadraticVertex(wpx - 2, groundY - 25, wpx - droop, groundY - 20 - i * 3);
+    endShape();
+    noStroke();
+    // Wilted leaf (drooping ellipse)
+    fill(50, 40, 35, 50);
+    push();
+    translate(wpx - droop, groundY - 20 - i * 3);
+    rotate(0.5 + i * 0.2);
+    ellipse(0, 0, 14, 6);
+    pop();
+  }
+
+  // Ground line (muted)
+  fill(30, 25, 22, 80);
+  rect(0, CANVAS_H - 90, CANVAS_W, 90);
+  stroke(50, 40, 35, 60); strokeWeight(1);
+  line(0, CANVAS_H - 90, CANVAS_W, CANVAS_H - 90);
+  noStroke();
+
+  // --- Title with dramatic red glow ---
   textAlign(CENTER,CENTER); textStyle(BOLD);
-  // Fade/glow effect behind title
-  textSize(44);
-  fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 25);
+  // Red glow layers
+  textSize(56);
+  fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 15);
   text('The Garden Faded', cx, 100);
-  textSize(40);
+  textSize(52);
+  fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 30);
+  text('The Garden Faded', cx, 100);
+  // Main title
+  textSize(48);
   fill(COL.textPrimary);
   text('The Garden Faded', cx, 100);
-  textStyle(NORMAL); textSize(16); fill(COL.textSecondary);
-  text('Too many plants were lost \u2014 but every attempt is practice.', cx, 150);
-  text('Adjust your strategy and try again.', cx, 173);
 
-  let y = 235, lh = 30;
-  textSize(16);
-  fill(COL.textPrimary); text('\uD83D\uDCCA Score: '+floor(score), cx, y); y += lh;
-  fill(COL.combo); text('\uD83C\uDFB5 Best Harmony: x'+nf(stats.peakCombo,1,1), cx, y); y += lh;
-  if (levelConfig.surgeMult > 0) {
-    fill(COL.surge); text('\u26A1 Surges Survived: '+stats.surgesSurvived, cx, y); y += lh;
+  // Subtitle
+  textStyle(NORMAL); textSize(20); fill(COL.textSecondary);
+  text('Too many plants were lost \u2014 but every attempt is practice.', cx, 155);
+
+  // Decorative divider
+  noStroke();
+  for (let i = 0; i < 200; i++) {
+    let divAlpha = sin(map(i, 0, 200, 0, PI)) * 60;
+    fill(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], divAlpha);
+    rect(cx - 100 + i, 180, 1, 1);
   }
-  fill(COL.accent); text('Plants Restored: '+stats.totalRestores, cx, y); y += lh;
-  fill(COL.healthLow); text('\uD83E\uDD40 Plants Wilted: '+stats.plantsWilted, cx, y);
+
+  // --- Stats in a dark, redder-tinted card ---
+  let cardX = cx - 180, cardY = 205, cardW2 = 360, cardPad = 20;
+  let statLines = 3;
+  if (levelConfig.surgeMult > 0) statLines = 4;
+  let cardH2 = (statLines + 1) * 36 + cardPad * 2;
+  fill(25, 15, 18, 190);
+  noStroke();
+  rect(cardX, cardY, cardW2, cardH2, 10);
+  // Subtle reddish border
+  noFill();
+  stroke(COL.healthLow[0], COL.healthLow[1], COL.healthLow[2], 35);
+  strokeWeight(1);
+  rect(cardX, cardY, cardW2, cardH2, 10);
+  noStroke();
+
+  let sy = cardY + cardPad + 10;
+  let slh = 36;
+  textAlign(LEFT, CENTER); textSize(18);
+  fill(COL.textPrimary); text('\uD83D\uDCCA  Score: '+floor(score), cardX + cardPad, sy); sy += slh;
+  fill(COL.combo); text('\uD83C\uDFB5  Best Harmony: x'+nf(stats.peakCombo,1,1), cardX + cardPad, sy); sy += slh;
+  if (levelConfig.surgeMult > 0) {
+    fill(COL.surge); text('\u26A1  Surges Survived: '+stats.surgesSurvived, cardX + cardPad, sy); sy += slh;
+  }
+  fill(COL.accent); text('\u2728  Plants Restored: '+stats.totalRestores, cardX + cardPad, sy); sy += slh;
+  fill(COL.healthLow); text('\uD83E\uDD40  Plants Wilted: '+stats.plantsWilted, cardX + cardPad, sy);
+
+  // Encouraging message at the bottom
+  textAlign(CENTER, CENTER);
+  textSize(16); textStyle(ITALIC);
+  fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 180);
+  text('Every garden teaches something.', cx, cardY + cardH2 + 30);
+  textStyle(NORMAL);
 }
 
 // ============================================================
@@ -2309,23 +2607,40 @@ function initModeSelectButtons() {
 function drawModeSelect() {
   background(COL.bg[0], COL.bg[1], COL.bg[2]);
 
-  // Subtle floating particle background
-  let t = millis() / 1000;
-  noStroke();
-  for (let i = 0; i < 6; i++) {
-    let px = CANVAS_W/2 + cos(t*0.2 + i*1.0) * 250;
-    let py = CANVAS_H/2 + sin(t*0.25 + i*0.9) * 160;
-    let r = 30 + sin(t*0.4 + i) * 10;
-    fill(COL.accent[0], COL.accent[1], COL.accent[2], 10 + sin(t+i)*5);
-    ellipse(px, py, r*2, r*2);
+  // Subtle grid pattern background
+  stroke(COL.accent[0], COL.accent[1], COL.accent[2], 10);
+  strokeWeight(1);
+  for (let gx = 0; gx < CANVAS_W; gx += 60) {
+    line(gx, 0, gx, CANVAS_H);
   }
+  for (let gy = 0; gy < CANVAS_H; gy += 60) {
+    line(0, gy, CANVAS_W, gy);
+  }
+  noStroke();
 
   textAlign(CENTER, CENTER);
-  textStyle(BOLD); textSize(42);
+  // Title with glow
+  textStyle(BOLD);
+  textSize(54);
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 25);
+  text('Garden Circuit', CANVAS_W / 2, CANVAS_H / 2 - 138);
+  textSize(48);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
   text('Garden Circuit', CANVAS_W / 2, CANVAS_H / 2 - 140);
 
-  textStyle(NORMAL); textSize(18);
+  // Decorative vine dots between title and subtitle
+  noStroke();
+  let vineCx = CANVAS_W / 2;
+  let vineY = CANVAS_H / 2 - 105;
+  for (let i = 0; i < 15; i++) {
+    let vx = vineCx - 70 + i * 10;
+    let vy = vineY + sin(i * 0.6) * 4;
+    let dotSize = 3 + sin(i * 0.8) * 1;
+    fill(COL.accent[0], COL.accent[1], COL.accent[2], 40 + sin(i * 0.5) * 15);
+    ellipse(vx, vy, dotSize, dotSize);
+  }
+
+  textStyle(NORMAL); textSize(20);
   fill(COL.textSecondary);
   text('Choose how to start:', CANVAS_W / 2, CANVAS_H / 2 - 80);
 
@@ -2335,7 +2650,7 @@ function drawModeSelect() {
   }
 
   // Subtitle hints under buttons
-  textSize(13); fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 140);
+  textSize(15); fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 140);
   let btnY1 = CANVAS_H / 2 - 20;
   text('Learn every mechanic step by step', CANVAS_W / 2, btnY1 + 70);
   text('Jump straight into Level 2', CANVAS_W / 2, btnY1 + 60 + 24 + 70);
@@ -2396,9 +2711,10 @@ function mousePressed() {
   switch (gameState) {
     case STATE.TITLE:
       if (showInstructionsOverlay) {
-        let closeBtnX = INSTR_OVERLAY_X + INSTR_OVERLAY_W - 200;
-        let closeBtnY = INSTR_OVERLAY_Y + INSTR_OVERLAY_H - 60;
-        if (isInRect(mouseX, mouseY, {x:closeBtnX, y:closeBtnY, w:160, h:44})) {
+        let closeBtnW2 = 180, closeBtnH2 = 50;
+        let closeBtnX = INSTR_OVERLAY_X + INSTR_OVERLAY_W - closeBtnW2 - 20;
+        let closeBtnY = INSTR_OVERLAY_Y + INSTR_OVERLAY_H - closeBtnH2 - 14;
+        if (isInRect(mouseX, mouseY, {x:closeBtnX, y:closeBtnY, w:closeBtnW2, h:closeBtnH2})) {
           showInstructionsOverlay = false;
         }
         return;
