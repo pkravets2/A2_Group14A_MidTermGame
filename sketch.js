@@ -843,10 +843,10 @@ function endTutorial() {
   surgeVisualIntensity = 0;
   tensionMeter = 0;
   for (let b of beds) b.hasFalseAlert = false;
-  // Re-initialize for Level 2 gameplay
+  // Reset to Level 1 and let the player finish it
   levelConfig = LEVELS[0];
   actionBtns = [];
-  initGame(1);
+  initGame(0);
   startCountdown();
 }
 
@@ -887,10 +887,19 @@ function drawTutorial() {
     dlgX = boardCenterX - dlgW / 2;
     dlgY = 20;
     arrowDir = 'down';
-    // Point arrow at approximate bar location
+    // Compute actual bar Y position using same math as drawBed/highlight
     let bed = beds[0];
-    arrowTargetX = boardCenterX;
-    arrowTargetY = bed.y + bed.h - 40;
+    let bBarH = 8, bLabelH = 11, bBarGap = 4, bBottomPad = 6;
+    let bTotalBarArea = 3 * (bBarH + bLabelH + bBarGap);
+    let bBarAreaTop = bed.y + bed.h - bBottomPad - bTotalBarArea;
+    if (hl === 'hp_bars') {
+      arrowTargetY = bBarAreaTop + (bLabelH + bBarH) / 2;
+    } else if (hl === 'water_bars') {
+      arrowTargetY = bBarAreaTop + (bLabelH + bBarH + bBarGap) + (bLabelH + bBarH) / 2;
+    } else {
+      arrowTargetY = bBarAreaTop + 2 * (bLabelH + bBarH + bBarGap) + (bLabelH + bBarH) / 2;
+    }
+    arrowTargetX = bed.x + bed.w / 2;
   } else if (hl === 'beds' || hl === 'board') {
     // Beds fill the board — put dialog at top
     dlgX = boardCenterX - dlgW / 2;
@@ -1047,7 +1056,7 @@ function drawTutorialHighlight(step) {
       push();
       drawBed(bed);
       // Highlight HP bar area specifically
-      let barH = 6, barW = bed.w - 16, barX = bed.x + 8, labelH = 10, barGap = 4;
+      let barH = 8, barW = bed.w - 16, barX = bed.x + 8, labelH = 11, barGap = 4;
       let bottomPad = 6;
       let totalBarArea = 3 * (barH + labelH + barGap);
       let barAreaTop = bed.y + bed.h - bottomPad - totalBarArea;
@@ -1063,7 +1072,7 @@ function drawTutorialHighlight(step) {
     for (let bed of beds) {
       push();
       drawBed(bed);
-      let barH = 6, barW = bed.w - 16, barX = bed.x + 8, labelH = 10, barGap = 4;
+      let barH = 8, barW = bed.w - 16, barX = bed.x + 8, labelH = 11, barGap = 4;
       let bottomPad = 6;
       let totalBarArea = 3 * (barH + labelH + barGap);
       let barAreaTop = bed.y + bed.h - bottomPad - totalBarArea;
@@ -1080,7 +1089,7 @@ function drawTutorialHighlight(step) {
     for (let bed of beds) {
       push();
       drawBed(bed);
-      let barH = 6, barW = bed.w - 16, barX = bed.x + 8, labelH = 10, barGap = 4;
+      let barH = 8, barW = bed.w - 16, barX = bed.x + 8, labelH = 11, barGap = 4;
       let bottomPad = 6;
       let totalBarArea = 3 * (barH + labelH + barGap);
       let barAreaTop = bed.y + bed.h - bottomPad - totalBarArea;
@@ -1334,12 +1343,12 @@ function drawInstructionsOverlay() {
 
   // Title with glow
   textAlign(CENTER, TOP); textStyle(BOLD);
-  textSize(36);
-  fill(COL.accent[0], COL.accent[1], COL.accent[2], 30);
-  text('How to Play', cx, oy + 14);
-  textSize(32);
+  textSize(42);
+  fill(COL.accent[0], COL.accent[1], COL.accent[2], 25);
+  text('How to Play', cx, oy + 12);
+  textSize(38);
   fill(COL.accent[0], COL.accent[1], COL.accent[2]);
-  text('How to Play', cx, oy + 16);
+  text('How to Play', cx, oy + 14);
 
   // === TOP SECTION: Action cards ===
   let cardW = 200, cardH = 120, cardGap = 30;
@@ -1368,23 +1377,23 @@ function drawInstructionsOverlay() {
     rect(ax + 8, cardsY, cardW - 16, 3, 2);
 
     // Icon
-    textAlign(CENTER, CENTER); textSize(34);
+    textAlign(CENTER, CENTER); textSize(38);
     fill(a.col[0], a.col[1], a.col[2]);
     text(a.icon, ax + cardW / 2, cardsY + 34);
 
     // Key binding
-    textSize(24); textStyle(BOLD);
+    textSize(28); textStyle(BOLD);
     fill(COL.textPrimary);
     text(a.key, ax + cardW / 2, cardsY + 68);
 
     // Description
-    textSize(16); textStyle(NORMAL);
+    textSize(18); textStyle(NORMAL);
     fill(COL.textSecondary);
     text(a.desc, ax + cardW / 2, cardsY + 98);
   }
 
   // Movement line
-  textAlign(CENTER, TOP); textSize(15); textStyle(NORMAL);
+  textAlign(CENTER, TOP); textSize(17); textStyle(NORMAL);
   fill(COL.textSecondary);
   text('WASD / Arrows / Click to select a plant', cx, cardsY + cardH + 18);
 
@@ -1407,24 +1416,24 @@ function drawInstructionsOverlay() {
     ellipse(leftEdge + 4, iy + 10, 8, 8);
 
     // Icon
-    textAlign(LEFT, CENTER); textSize(22);
+    textAlign(LEFT, CENTER); textSize(26);
     fill(item.col[0], item.col[1], item.col[2]);
     text(item.icon, leftEdge + 16, iy + 10);
 
     // Label
-    textSize(16); textStyle(BOLD);
+    textSize(19); textStyle(BOLD);
     fill(item.col[0], item.col[1], item.col[2]);
-    text(item.label, leftEdge + 44, iy + 10);
+    text(item.label, leftEdge + 48, iy + 10);
 
     // Description
-    textSize(15); textStyle(NORMAL);
+    textSize(17); textStyle(NORMAL);
     fill(COL.textSecondary);
-    text(item.desc, leftEdge + 180, iy + 10);
+    text(item.desc, leftEdge + 190, iy + 10);
   }
 
   // === BOTTOM SECTION: Design note ===
   let noteY = conceptsY + conceptItems.length * 44 + 30;
-  textAlign(CENTER, CENTER); textSize(14); textStyle(ITALIC);
+  textAlign(CENTER, CENTER); textSize(16); textStyle(ITALIC);
   fill(COL.textSecondary[0], COL.textSecondary[1], COL.textSecondary[2], 160);
   text('This game uses symbolic mechanics to respectfully represent disruption and coping.', cx, noteY);
   textStyle(NORMAL);
